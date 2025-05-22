@@ -1,0 +1,14 @@
+{
+  "name": "vk-backend",
+  "version": "1.0.0",
+  "description": "Бэкенд для VK ID",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
