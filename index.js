@@ -21,7 +21,7 @@ app.get('/auth/vk/callback', async (req, res) => {
   // !!! Вставь свои данные приложения VK !!!
   const CLIENT_ID = '53336238';
   const CLIENT_SECRET = '7sPy0o7CDAs2qYfBCDJC';
-  const REDIRECT_URI = 'https://www.fokusnikaltair.xyz';
+  const REDIRECT_URI = 'https://vk-backend-w0we.onrender.com/auth/vk/callback';
 
   try {
     const response = await axios.get('https://oauth.vk.com/access_token', {
