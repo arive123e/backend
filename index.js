@@ -14,7 +14,9 @@ app.get('/', (req, res) => {
 
 // VK ID Callback
 app.get('/auth/vk/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  const tg_id = state; // вот он, твой Telegram ID
+
   if (!code) {
     // Нет кода авторизации — редиректим на красивую ошибку
     return res.redirect('/error.html');
@@ -34,6 +36,10 @@ app.get('/auth/vk/callback', async (req, res) => {
       },
     });
 
+    // Тут у тебя доступен Telegram ID: tg_id
+    // и VK токен: response.data.access_token (и другие данные)
+    // Можешь тут сохранять связку или что нужно.
+
     // Если всё ок — редирект на успех
     return res.redirect('/success.html');
     // Для отладки можно раскомментировать:
@@ -47,11 +53,6 @@ app.get('/auth/vk/callback', async (req, res) => {
 // Необязательно — отдельная ручка для поддержки, если нужен красивый адрес
 app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
-});
-
-// Запуск сервера
-app.listen(PORT, () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
 
 // Запуск сервера
