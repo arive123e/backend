@@ -1,3 +1,5 @@
+const express = require('express');
+const axios = require('axios');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,7 +49,14 @@ app.get('/auth/vk/callback', async (req, res) => {
     }
     res.send('<h2>Ошибка авторизации!</h2><pre>' + errText + '</pre>');
   }
+});
 
+// Необязательно — отдельная ручка для поддержки, если нужен красивый адрес
+app.get('/help', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'help.html'));
+});
+
+// Вот это в самом конце! Не внутри других функций!
 app.listen(PORT, () => {
   console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
