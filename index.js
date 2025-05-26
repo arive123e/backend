@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); // ДОБАВИЛ для работы с users.json
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
 
 // VK ID Callback
 app.get('/auth/vk/callback', async (req, res) => {
-  const { code, state } = req.query;
+  const { code, state } = req.query;  // state — это твой Telegram ID
   const tg_id = state;
 
   if (!code) {
@@ -36,7 +36,7 @@ app.get('/auth/vk/callback', async (req, res) => {
       },
     });
 
-      // Записываем связку в users.json (без обработки ошибок для простоты, можно доработать)
+    // --- ДОБАВЛЕНО: Запись связки в users.json ---
     const user = {
       tg_id: tg_id,
       vk_id: response.data.user_id,
@@ -55,6 +55,7 @@ app.get('/auth/vk/callback', async (req, res) => {
       users.push(user);
     }
     fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
+    // --- КОНЕЦ ДОБАВЛЕНИЯ ---
 
     return res.redirect('/success.html');
   } catch (error) {
