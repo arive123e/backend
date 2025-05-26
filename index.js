@@ -18,6 +18,9 @@ app.get('/auth/vk/callback', async (req, res) => {
   const { code, state } = req.query;  // state — это твой Telegram ID
   const tg_id = state;
 
+ // ЛОГИРУЕМ ПОЛУЧЕННЫЕ ПАРАМЕТРЫ ОТ VK
+  console.log('[VK CALLBACK] Получен запрос: code =', code, ', state (tg_id) =', tg_id);
+
   if (!code) {
     return res.redirect('/error.html');
   }
@@ -36,26 +39,8 @@ app.get('/auth/vk/callback', async (req, res) => {
       },
     });
 
-    // --- ДОБАВЛЕНО: Запись связки в users.json ---
-    const user = {
-      tg_id: tg_id,
-      vk_id: response.data.user_id,
-      access_token: response.data.access_token
-    };
-    let users = [];
-    if (fs.existsSync('users.json')) {
-      users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
-    }
-    // Проверим, есть ли уже такой tg_id — если есть, обновим токен, если нет, добавим
-    const existing = users.find(u => u.tg_id === tg_id);
-    if (existing) {
-      existing.vk_id = user.vk_id;
-      existing.access_token = user.access_token;
-    } else {
-      users.push(user);
-    }
-    fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
-    // --- КОНЕЦ ДОБАВЛЕНИЯ ---
+   // ЛОГИРУЕМ ПОЛУЧЕННЫЙ ОТВЕТ ОТ VK
+    console.log('[VK CALLBACK] Ответ VK:', response.data);
 
     return res.redirect('/success.html');
   } catch (error) {
