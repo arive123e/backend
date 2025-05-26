@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -35,9 +36,25 @@ app.get('/auth/vk/callback', async (req, res) => {
       },
     });
 
-    // Тут у тебя доступен Telegram ID: tg_id
-    // и VK токен: response.data.access_token (и другие данные)
-    // Можешь тут сохранять связку или что нужно.
+      // Записываем связку в users.json (без обработки ошибок для простоты, можно доработать)
+    const user = {
+      tg_id: tg_id,
+      vk_id: response.data.user_id,
+      access_token: response.data.access_token
+    };
+    let users = [];
+    if (fs.existsSync('users.json')) {
+      users = JSON.parse(fs.readFileSync('users.json', 'utf8'));
+    }
+    // Проверим, есть ли уже такой tg_id — если есть, обновим токен, если нет, добавим
+    const existing = users.find(u => u.tg_id === tg_id);
+    if (existing) {
+      existing.vk_id = user.vk_id;
+      existing.access_token = user.access_token;
+    } else {
+      users.push(user);
+    }
+    fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
 
     return res.redirect('/success.html');
   } catch (error) {
