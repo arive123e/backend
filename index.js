@@ -80,7 +80,7 @@ app.get('/auth/vk/callback', async (req, res) => {
       console.error('[VK CALLBACK] Ошибка записи файла:', e);
     }
 
-    return res.redirect('/success.html');
+    return res.send('Авторизация прошла. Скопируй ссылку из адресной строки.');
   } catch (error) {
     let errText = '';
     if (error.response) {
