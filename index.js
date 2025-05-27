@@ -21,7 +21,7 @@ app.get('/auth/vk', (req, res) => {
     v: '5.131'
   });
 
-  res.redirect(https://oauth.vk.com/authorize?${params.toString()});
+  res.redirect(`https://oauth.vk.com/authorize?${params.toString()}`);
 });
 // ===============================================
 
