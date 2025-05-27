@@ -5,7 +5,25 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ставит public как статику
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ===== ДОБАВЬ ЭТО! Старт авторизации VK ID =====
+app.get('/auth/vk', (req, res) => {
+  const CLIENT_ID = '53336238';
+  const REDIRECT_URI = 'https://vk-backend.olyaberezina930.repl.co/auth/vk/callback'; // ← твой новый адрес!
+
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'offline,wall,groups,photos,email,friends,docs,video,status',
+    v: '5.131'
+  });
+
+  res.redirect(https://oauth.vk.com/authorize?${params.toString()});
+});
+// ===============================================
 
 app.get('/', (req, res) => {
   res.send('Добро пожаловать в магический проект Фокусника Альтаира! ✨');
@@ -15,7 +33,6 @@ app.get('/auth/vk/callback', async (req, res) => {
   const { code, state } = req.query;
   const tg_id = state;
 
-  // Логируем запрос
   console.log('[VK CALLBACK] Получен запрос: code =', code, ', state (tg_id) =', tg_id);
 
   if (!code) {
@@ -25,7 +42,7 @@ app.get('/auth/vk/callback', async (req, res) => {
 
   const CLIENT_ID = '53336238';
   const CLIENT_SECRET = '7sPy0o7CDAs2qYfBCDJC';
-  const REDIRECT_URI = 'https://vk-backend-w0we.onrender.com/auth/vk/callback';
+  const REDIRECT_URI = 'https://vk-backend.olyaberezina930.repl.co/auth/vk/callback'; // ← здесь тоже новый адрес!
 
   try {
     const response = await axios.get('https://oauth.vk.com/access_token', {
@@ -39,7 +56,7 @@ app.get('/auth/vk/callback', async (req, res) => {
 
     console.log('[VK CALLBACK] Ответ VK:', response.data);
 
-    // Записываем связку в users.json (ПРОСТО ДЛЯ ПРОВЕРКИ)
+    // Запись пользователей (оставляем твою логику)
     try {
       let users = [];
       if (fs.existsSync('users.json')) {
@@ -72,7 +89,7 @@ app.get('/auth/vk/callback', async (req, res) => {
       errText = error.message;
     }
     console.error('[VK CALLBACK] Ошибка авторизации:', errText);
-    res.send('<h2>Ошибка авторизации!</h2><pre>' + errText + '</pre>');
+    res.redirect('/error.html'); // Редиректим на error.html
   }
 });
 
@@ -81,5 +98,5 @@ app.get('/help', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
+  console.log(Сервер запущен на http://localhost:${PORT});
 });
