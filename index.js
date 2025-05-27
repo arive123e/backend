@@ -3,15 +3,15 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000; // Жёстко указанный порт (можно изменить при необходимости)
 
 // Ставит public как статику
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ===== ДОБАВЬ ЭТО! Старт авторизации VK ID =====
+// ===== Старт авторизации VK ID =====
 app.get('/auth/vk', (req, res) => {
-  const CLIENT_ID = '53336238';
-  const REDIRECT_URI = 'https://vk-backend.olyaberezina930.repl.co/auth/vk/callback'; // ← твой новый адрес!
+  const CLIENT_ID = '53336238'; // ← твой client_id
+  const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; // ← твой поддомен и путь
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -23,7 +23,7 @@ app.get('/auth/vk', (req, res) => {
 
   res.redirect(`https://oauth.vk.com/authorize?${params.toString()}`);
 });
-// ===============================================
+// ====================================
 
 app.get('/', (req, res) => {
   res.send('Добро пожаловать в магический проект Фокусника Альтаира! ✨');
@@ -40,9 +40,9 @@ app.get('/auth/vk/callback', async (req, res) => {
     return res.redirect('/error.html');
   }
 
-  const CLIENT_ID = '53336238';
-  const CLIENT_SECRET = '7sPy0o7CDAs2qYfBCDJC';
-  const REDIRECT_URI = 'https://vk-backend.olyaberezina930.repl.co/auth/vk/callback'; // ← здесь тоже новый адрес!
+  const CLIENT_ID = '53336238'; // ← твой client_id
+  const CLIENT_SECRET = '7sPy0o7CDAs2qYfBCDJC'; // ← твой client_secret
+  const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; // ← твой поддомен и путь
 
   try {
     const response = await axios.get('https://oauth.vk.com/access_token', {
