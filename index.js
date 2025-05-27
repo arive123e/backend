@@ -33,7 +33,8 @@ app.get('/auth/vk/callback', async (req, res) => {
   const { code, state } = req.query;
   const tg_id = state;
 
-  console.log('[VK CALLBACK] Получен запрос: code =', code, ', state (tg_id) =', tg_id);
+  console.log('🟡 [VK CALLBACK] Вызван /auth/vk/callback');
+  console.log('🟡 [VK CALLBACK] req.query:', req.query);
 
   if (!code) {
     console.log('[VK CALLBACK] Нет кода!');
