@@ -6,6 +6,7 @@ const app = express();
 const PORT = 3000; // Жёстко указанный порт (можно изменить при необходимости)
 
 // Ставит public как статику
+app.use(express.static('frontend'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== Старт авторизации VK ID =====
