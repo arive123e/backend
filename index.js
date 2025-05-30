@@ -5,9 +5,9 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000; // Жёстко указанный порт (можно изменить при необходимости)
 
-// Ставит public как статику
-app.use(express.static('frontend'));
-app.use(express.static(path.join(__dirname, 'public')));
+app.get('/test', (req, res) => {
+  res.send('Test OK!');
+});
 
 // ===== Старт авторизации VK ID =====
 app.get('/auth/vk', (req, res) => {
@@ -104,9 +104,9 @@ app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
 });
 
-app.get('/test', (req, res) => {
-  res.send('Test OK!');
-});
+// Ставит public как статику
+app.use(express.static('frontend'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер запущен на http://localhost:${PORT}`);
