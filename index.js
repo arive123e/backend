@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ===== Старт авторизации VK ID =====
 app.get('/auth/vk', (req, res) => {
   const CLIENT_ID = '53336238'; // ← твой client_id
-  const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; // ← твой поддомен и путь
+  const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; 
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -32,6 +32,10 @@ app.get('/', (req, res) => {
 app.get('/auth/vk/callback', async (req, res) => {
   const { code, state } = req.query;
   const tg_id = state;
+
+  console.log('🟠 [VK CALLBACK] Попытка входа!');
+  console.log('🟠 [VK CALLBACK] URL:', req.url);
+  console.log('🟠 [VK CALLBACK] query:', req.query);
 
   console.log('🟡 [VK CALLBACK] Вызван /auth/vk/callback');
   console.log('🟡 [VK CALLBACK] req.query:', req.query);
