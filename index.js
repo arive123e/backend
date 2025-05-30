@@ -104,6 +104,10 @@ app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
 });
 
+app.get('/test', (req, res) => {
+  res.send('Test OK!');
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
