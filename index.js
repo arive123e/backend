@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/auth/vk/callback', async (req, res) => {
+  console.log('CALLBACK /auth/vk/callback!', req.query);
   const { code, state } = req.query;
   const tg_id = state;
 
