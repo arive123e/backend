@@ -30,8 +30,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/auth/vk/callback', async (req, res) => {
-  console.log('[VK CALLBACK] ПРИШЁЛ ЗАПРОС! query:', req.query);
-  res.send('OK! Колбэк дошёл до сервера.');
+  console.log('=== [VK CALLBACK] ===');
+  console.log('Вызван /auth/vk/callback');
+  console.log('Query:', req.query);
+  res.send('OK! Колбэк дошёл до сервера.'); // этот ответ временно для теста
 });
 
 app.get('/help', (req, res) => {
