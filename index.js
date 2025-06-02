@@ -9,8 +9,8 @@ const PORT = 3000;
 
 // ✨ Храним использованные VK-коды с временем
 const usedCodes = new Map();
-const recentIPs = new Map(); // 🔮 Храним IP для защиты от повторных запросов
-let callCounter = 0; // 🔮 Счётчик вызовов callback
+const recentIPs = new Map(); // 🌀 Храним IP для защиты от повторных запросов
+let callCounter = 0; // 📊 Счётчик вызовов callback
 
 // ✅ Тестовый маршрут
 app.get('/test', (req, res) => {
@@ -22,7 +22,7 @@ app.get('/test', (req, res) => {
 // ===========================
 app.get('/auth/vk', (req, res) => {
   const CLIENT_ID = process.env.VK_CLIENT_ID;
-  const REDIRECT_URI = process.env.VK_REDIRECT_URI;
+  const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; // 🔒 Жёстко заданный redirect
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -32,7 +32,7 @@ app.get('/auth/vk', (req, res) => {
     v: '5.131'
   });
 
-  console.log(`[VK LINK] Сформирована в ${new Date().toISOString()}`); // 🪄 Лог времени генерации ссылки
+  console.log(`[VK LINK] Сформирована в ${new Date().toISOString()}`);
   res.redirect(`https://oauth.vk.com/authorize?${params.toString()}`);
 });
 
@@ -51,7 +51,7 @@ app.get('/auth/vk/callback', async (req, res) => {
   const now = Date.now();
   const ip = req.ip;
 
-  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} === 🌟`);
+  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`);
   console.log(`[CALLBACK] Время: ${new Date().toISOString()}`);
   console.log(`[CALLBACK] code: ${req.query.code}`);
   console.log(`[CALLBACK] state: ${req.query.state}`);
@@ -59,13 +59,13 @@ app.get('/auth/vk/callback', async (req, res) => {
   console.log(`[CALLBACK] User-Agent: ${req.headers['user-agent']}`);
   console.log(`[CALLBACK] Referer: ${req.headers['referer']}`);
 
-  // 🔮 Защита от частых повторов по IP
+  // 🔁 Блокировка частых повторов по IP
   if (recentIPs.has(ip) && now - recentIPs.get(ip) < 5000) {
     console.warn(`🔁 Повторный запрос с IP ${ip} — заблокирован`);
     return res.status(429).send('Слишком частые запросы');
   }
   recentIPs.set(ip, now);
-  setTimeout(() => recentIPs.delete(ip), 60000); // 🧙‍♂️ Очистка IP через 1 мин
+  setTimeout(() => recentIPs.delete(ip), 60000); // 🧼 Очистка IP через 1 минуту
 
   try {
     const { code, state } = req.query;
@@ -74,26 +74,25 @@ app.get('/auth/vk/callback', async (req, res) => {
       return res.status(400).send('Ошибка: нет кода авторизации!');
     }
 
-    // ✨ Проверка: код уже использован?
     if (usedCodes.has(code)) {
       console.warn('‼️ Код уже использован!');
       return res.sendFile(path.join(__dirname, 'public', 'error.html'));
     }
 
-    usedCodes.set(code, now); // 🧷 Отмечаем код
+    usedCodes.set(code, now); // ✅ Отмечаем код
 
-    // 📥 Запрашиваем access_token
+    // 🎫 Обмен кода на access_token
     const tokenParams = new URLSearchParams({
       client_id: process.env.VK_CLIENT_ID,
       client_secret: process.env.VK_CLIENT_SECRET,
-      redirect_uri: process.env.VK_REDIRECT_URI,
+      redirect_uri: 'https://api.fokusnikaltair.xyz/auth/vk/callback', // ✅ Тот же жёсткий URI
       code,
     });
 
     const vkRes = await axios.get(`https://oauth.vk.com/access_token?${tokenParams.toString()}`);
     console.log('🗝️ VK access_token response:', vkRes.data);
 
-    // 📌 Сохраняем пользователя в файл
+    // 💾 Сохраняем пользователя
     const { user_id, access_token, email } = vkRes.data;
     const tg_id = state || 'unknown';
 
@@ -115,9 +114,7 @@ app.get('/auth/vk/callback', async (req, res) => {
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
     console.log(`💾 Сохранён пользователь VK ${user_id} (TG ${tg_id})`);
 
-    // 🟢 Страница успеха
     return res.sendFile(path.join(__dirname, 'public', 'success.html'));
-
   } catch (error) {
     console.error('❌ Ошибка при обмене кода:', error.response?.data || error.message);
     return res.sendFile(path.join(__dirname, 'public', 'error.html'));
