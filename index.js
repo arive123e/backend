@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
@@ -11,7 +13,7 @@ app.get('/test', (req, res) => {
 
 // ===== Старт авторизации VK ID =====
 app.get('/auth/vk', (req, res) => {
-  const CLIENT_ID = '53336238'; // ← твой client_id
+  const CLIENT_ID = process.env.VK_CLIENT_ID; 
   const REDIRECT_URI = 'https://api.fokusnikaltair.xyz/auth/vk/callback'; 
 
   const params = new URLSearchParams({
