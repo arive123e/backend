@@ -7,8 +7,9 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000; 
 
-// 🧠 Память для защиты от повторного использования одного и того же кода VK
-const usedCodes = new Set(); // 🆕 защита от повторного использования code
+// 🧠 Память для защиты от повторного использования кода VK и автоочистка
+const usedCodes = new Map(); // 🆕 Map: code → timestamp
+const recentIPs = new Map(); // 🆕 IP защита: IP → timestamp
 let callCounter = 0; // 📊 Счётчик вызовов /auth/vk/callback (для отладки)
 
 // ✅ Тестовый маршрут для проверки, что сервер жив
@@ -51,8 +52,19 @@ app.get('/', (req, res) => {
 // ===========================
 app.get('/auth/vk/callback', async (req, res) => {
   callCounter++; // 🆕
-  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`); // 🆕
+  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`);
   
+  const ip = req.ip; // 🆕
+  const now = Date.now();
+
+  // 🛡 Блокировка повторных запросов с одного IP
+  if (recentIPs.has(ip) && now - recentIPs.get(ip) < 5000) { // 🆕
+    console.warn(`🔁 Повторный запрос с IP ${ip} — отклонён`);
+    return res.status(429).send('Слишком частые запросы'); // 🆕
+  }
+  recentIPs.set(ip, now); // 🆕
+  setTimeout(() => recentIPs.delete(ip), 60000); // 🆕 автоматическая очистка IP
+
   try {
     console.log('Вызван /auth/vk/callback');
     console.log('Query:', req.query);
@@ -65,12 +77,12 @@ app.get('/auth/vk/callback', async (req, res) => {
     }
 
     // ⛔ Блокируем повторное использование кода
-    if (usedCodes.has(code)) {
+    if (usedCodes.has(code)) { // 🆕
       console.warn('‼️ Код уже использован!');
       return res.sendFile(path.join(__dirname, 'public', 'error.html'));
     }
 
-    usedCodes.add(code);
+    usedCodes.set(code, now); // 🆕
     
     // 🔄 Формируем параметры для обмена кода на токен
     const tokenParams = new URLSearchParams({
@@ -97,8 +109,19 @@ app.get('/auth/vk/callback', async (req, res) => {
 });
 
 // ===========================
-// 🆘 Страница помощи (/help)
+// 🧹 Автоочистка старых usedCodes каждые 60 секунд
 // ===========================
+setInterval(() => {
+  const now = Date.now();
+  const TTL = 2 * 60 * 1000; // 2 минуты
+  for (const [code, timestamp] of usedCodes.entries()) {
+    if (now - timestamp > TTL) {
+      usedCodes.delete(code);
+      console.log(`🧹 Удалён просроченный code: ${code}`);
+    }
+  }
+}, 60000); // 🆕
+
 app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
 });
@@ -109,20 +132,20 @@ app.get('/help', (req, res) => {
 // иначе Express дублирует /auth/vk/callback запрос в static
 // ===========================
 
-// 🆕 Логируем все обращения к статике
+// 🆕 Логируем все обращения к статикам
 app.use((req, res, next) => {
-  console.log('[STATIC MIDDLEWARE] Запрос:', req.url); // 🆕
+  console.log('[STATIC MIDDLEWARE] Запрос:', req.url);
   next();
 });
 
 // 🆕 Блокируем отдачу статики по путям, начинающимся с /auth
 app.use((req, res, next) => {
-  if (req.url.startsWith('/auth')) return next(); // 🆕
-  express.static('frontend')(req, res, next); // 🆕
+  if (req.url.startsWith('/auth')) return next();
+  express.static('frontend')(req, res, next);
 });
 app.use((req, res, next) => {
-  if (req.url.startsWith('/auth')) return next(); // 🆕
-  express.static(path.join(__dirname, 'public'))(req, res, next); // 🆕
+  if (req.url.startsWith('/auth')) return next();
+  express.static(path.join(__dirname, 'public'))(req, res, next);
 });
 
 // ===========================
