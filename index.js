@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // 🔐 Загружаем переменные из .env
 
 const express = require('express');
 const axios = require('axios');
@@ -7,11 +7,20 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000; 
 
+// 🧠 Память для защиты от повторного использования одного и того же кода VK
+const usedCodes = new Set(); // 🆕 защита от повторного использования code
+let callCounter = 0; // 📊 Счётчик вызовов /auth/vk/callback (для отладки)
+
+// ✅ Тестовый маршрут для проверки, что сервер жив
 app.get('/test', (req, res) => {
   res.send('Test OK!');
 });
 
-// проверка сервера
+// ===========================
+// 🔗 Генерация ссылки авторизации через VK
+// Этот маршрут вызывается, когда пользователь кликает "Войти через VK"
+// Он редиректит на oauth.vk.com/authorize с параметрами
+// ===========================
 app.get('/auth/vk', (req, res) => {
   const CLIENT_ID = process.env.VK_CLIENT_ID; 
   const REDIRECT_URI = process.env.VK_REDIRECT_URI; 
@@ -20,31 +29,50 @@ app.get('/auth/vk', (req, res) => {
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'offline,wall,groups,photos,email,friends,docs,video,status',
+    scope: 'offline,wall,groups,photos,email,friends,docs,video,status', // доступы
     v: '5.131'
   });
 
   res.redirect(`https://oauth.vk.com/authorize?${params.toString()}`);
 });
 
-// === Корневой роут ===
+// ===========================
+// 🌐 Главная страница (по адресу "/")
+// Можно использовать как заглушку или приветствие
+// ===========================
 app.get('/', (req, res) => {
   res.send('Добро пожаловать в магический проект Фокусника Альтаира! ✨');
 });
 
-// ====== VK CALLBACK: обмен code на access_token ======
+// ===========================
+// 🎯 Основной маршрут VK CALLBACK
+// Приходит от VK после авторизации с параметром ?code=...
+// Здесь мы обмениваем код на access_token
+// ===========================
 app.get('/auth/vk/callback', async (req, res) => {
+  callCounter++; // 🆕
+  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`); // 🆕
+  
   try {
-  console.log('=== [VK CALLBACK] ===');
   console.log('Вызван /auth/vk/callback');
   console.log('Query:', req.query);
 
     const { code, state } = req.query;
+
+    // ❗Если нет кода — значит что-то пошло не так
     if (!code) {
       return res.status(400).send('Ошибка: нет кода авторизации!');
     }
 
-    // Запрос на получение access_token
+    // ⛔ Блокируем повторное использование кода
+    if (usedCodes.has(code)) {
+      console.warn('‼️ Код уже использован!');
+      return res.sendFile(path.join(__dirname, 'public', 'error.html'));
+    }
+
+    usedCodes.add(code);
+    
+    // 🔄 Формируем параметры для обмена кода на токен
     const tokenParams = new URLSearchParams({
       client_id: process.env.VK_CLIENT_ID,
       client_secret: process.env.VK_CLIENT_SECRET,
@@ -52,31 +80,38 @@ app.get('/auth/vk/callback', async (req, res) => {
       code,
     });
 
+    // 🔑 Отправляем запрос на получение access_token от VK
     const vkRes = await axios.get(`https://oauth.vk.com/access_token?${tokenParams.toString()}`);
 
     // Выведем ответ VK (token, user_id и т.п.)
     console.log('VK access_token response:', vkRes.data);
+
+     // ✅ Показываем страницу успеха
+    return res.sendFile(path.join(__dirname, 'public', 'success.html'));
     
- res.send(`
-      <h2>Авторизация прошла!</h2>
-      <pre>${JSON.stringify(vkRes.data, null, 2)}</pre>
-      <a href="/">На главную</a>
-    `);
   } catch (error) {
     console.error('Ошибка при обмене code на token:', error.response?.data || error.message);
-    res.status(500).send('Ошибка обмена code на token: ' + (error.response?.data?.error_description || error.message));
+    // ❌ Показываем страницу ошибки
+    return res.sendFile(path.join(__dirname, 'public', 'error.html'));
   }
 });
 
-// ==== Help-страница ====
+// ===========================
+// 🆘 Страница помощи (/help)
+// ===========================
 app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
 });
 
-// Ставит public как статику
+// ===========================
+// 📂 Подключение статики (frontend и public папки)
+// ===========================
 app.use(express.static('frontend'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ===========================
+// 🚀 Запуск сервера на 0.0.0.0:3000
+// ===========================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
