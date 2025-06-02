@@ -5,7 +5,7 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const app = express();
-const PORT = 3000; 
+const PORT = 3000;
 
 // ✨ Храним использованные VK-коды с временем
 const usedCodes = new Map();
@@ -21,8 +21,8 @@ app.get('/test', (req, res) => {
 // 🔗 Генерация ссылки авторизации через VK
 // ===========================
 app.get('/auth/vk', (req, res) => {
-  const CLIENT_ID = process.env.VK_CLIENT_ID; 
-  const REDIRECT_URI = process.env.VK_REDIRECT_URI; 
+  const CLIENT_ID = process.env.VK_CLIENT_ID;
+  const REDIRECT_URI = process.env.VK_REDIRECT_URI;
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -32,6 +32,7 @@ app.get('/auth/vk', (req, res) => {
     v: '5.131'
   });
 
+  console.log(`[VK LINK] Сформирована в ${new Date().toISOString()}`); // 🪄 Лог времени генерации ссылки
   res.redirect(`https://oauth.vk.com/authorize?${params.toString()}`);
 });
 
@@ -47,18 +48,24 @@ app.get('/', (req, res) => {
 // ===========================
 app.get('/auth/vk/callback', async (req, res) => {
   callCounter++;
-  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`);
-  
-  const ip = req.ip;
   const now = Date.now();
+  const ip = req.ip;
 
-  // 🔮 Защита от частых повторов
+  console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} === 🌟`);
+  console.log(`[CALLBACK] Время: ${new Date().toISOString()}`);
+  console.log(`[CALLBACK] code: ${req.query.code}`);
+  console.log(`[CALLBACK] state: ${req.query.state}`);
+  console.log(`[CALLBACK] IP: ${ip}`);
+  console.log(`[CALLBACK] User-Agent: ${req.headers['user-agent']}`);
+  console.log(`[CALLBACK] Referer: ${req.headers['referer']}`);
+
+  // 🔮 Защита от частых повторов по IP
   if (recentIPs.has(ip) && now - recentIPs.get(ip) < 5000) {
     console.warn(`🔁 Повторный запрос с IP ${ip} — заблокирован`);
     return res.status(429).send('Слишком частые запросы');
   }
   recentIPs.set(ip, now);
-  setTimeout(() => recentIPs.delete(ip), 60000); // ✨ Очищаем через 1 мин
+  setTimeout(() => recentIPs.delete(ip), 60000); // 🧙‍♂️ Очистка IP через 1 мин
 
   try {
     const { code, state } = req.query;
@@ -67,15 +74,15 @@ app.get('/auth/vk/callback', async (req, res) => {
       return res.status(400).send('Ошибка: нет кода авторизации!');
     }
 
-    // ✨ Проверяем, не использовался ли код
+    // ✨ Проверка: код уже использован?
     if (usedCodes.has(code)) {
       console.warn('‼️ Код уже использован!');
       return res.sendFile(path.join(__dirname, 'public', 'error.html'));
     }
 
-    usedCodes.set(code, now); // ✨ Отмечаем код как использованный
+    usedCodes.set(code, now); // 🧷 Отмечаем код
 
-    // 🔑 Обмен code на access_token
+    // 📥 Запрашиваем access_token
     const tokenParams = new URLSearchParams({
       client_id: process.env.VK_CLIENT_ID,
       client_secret: process.env.VK_CLIENT_SECRET,
@@ -84,9 +91,9 @@ app.get('/auth/vk/callback', async (req, res) => {
     });
 
     const vkRes = await axios.get(`https://oauth.vk.com/access_token?${tokenParams.toString()}`);
-    console.log('VK access_token response:', vkRes.data);
+    console.log('🗝️ VK access_token response:', vkRes.data);
 
-    // ✨ Сохраняем пользователя в users.json
+    // 📌 Сохраняем пользователя в файл
     const { user_id, access_token, email } = vkRes.data;
     const tg_id = state || 'unknown';
 
@@ -108,11 +115,11 @@ app.get('/auth/vk/callback', async (req, res) => {
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
     console.log(`💾 Сохранён пользователь VK ${user_id} (TG ${tg_id})`);
 
-    // ✅ Страница успеха
+    // 🟢 Страница успеха
     return res.sendFile(path.join(__dirname, 'public', 'success.html'));
 
   } catch (error) {
-    console.error('Ошибка при обмене code на token:', error.response?.data || error.message);
+    console.error('❌ Ошибка при обмене кода:', error.response?.data || error.message);
     return res.sendFile(path.join(__dirname, 'public', 'error.html'));
   }
 });
@@ -127,7 +134,7 @@ setInterval(() => {
   for (const [code, timestamp] of usedCodes.entries()) {
     if (now - timestamp > TTL) {
       usedCodes.delete(code);
-      console.log(`🧹 Удалён просроченный code: ${code}`);
+      console.log(`🧼 Удалён просроченный code: ${code}`);
     }
   }
 }, 60000);
@@ -160,5 +167,5 @@ app.use((req, res, next) => {
 // 🚀 Запуск сервера
 // ===========================
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
+  console.log(`🔮 Сервер запущен на http://localhost:${PORT}`);
 });
