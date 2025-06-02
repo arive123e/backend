@@ -54,8 +54,8 @@ app.get('/auth/vk/callback', async (req, res) => {
   console.log(`=== [VK CALLBACK] ВЫЗОВ #${callCounter} ===`); // 🆕
   
   try {
-  console.log('Вызван /auth/vk/callback');
-  console.log('Query:', req.query);
+    console.log('Вызван /auth/vk/callback');
+    console.log('Query:', req.query);
 
     const { code, state } = req.query;
 
@@ -86,7 +86,7 @@ app.get('/auth/vk/callback', async (req, res) => {
     // Выведем ответ VK (token, user_id и т.п.)
     console.log('VK access_token response:', vkRes.data);
 
-     // ✅ Показываем страницу успеха
+    // ✅ Показываем страницу успеха
     return res.sendFile(path.join(__dirname, 'public', 'success.html'));
     
   } catch (error) {
@@ -105,9 +105,25 @@ app.get('/help', (req, res) => {
 
 // ===========================
 // 📂 Подключение статики (frontend и public папки)
+// 🔒 Статические файлы не будут отдаваться по маршрутам /auth/*
+// иначе Express дублирует /auth/vk/callback запрос в static
 // ===========================
-app.use(express.static('frontend'));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// 🆕 Логируем все обращения к статике
+app.use((req, res, next) => {
+  console.log('[STATIC MIDDLEWARE] Запрос:', req.url); // 🆕
+  next();
+});
+
+// 🆕 Блокируем отдачу статики по путям, начинающимся с /auth
+app.use((req, res, next) => {
+  if (req.url.startsWith('/auth')) return next(); // 🆕
+  express.static('frontend')(req, res, next); // 🆕
+});
+app.use((req, res, next) => {
+  if (req.url.startsWith('/auth')) return next(); // 🆕
+  express.static(path.join(__dirname, 'public'))(req, res, next); // 🆕
+});
 
 // ===========================
 // 🚀 Запуск сервера на 0.0.0.0:3000
