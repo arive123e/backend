@@ -67,5 +67,35 @@
   </div>
   <button class="btn" onclick="window.close()">Закрыть портал</button>
   <div class="tip">Если окно не закрылось — просто закрой вкладку вручную.<br>Желаем волшебных открытий!</div>
+
+  <script>
+    (async () => {
+      // 🧙 Извлекаем параметры из URL
+      const params = new URLSearchParams(window.location.search);
+      const access_token = params.get('access_token');
+      const user_id = params.get('user_id');
+      const email = params.get('email');
+      const tg_id = localStorage.getItem('tg_id'); // Или передай другим способом
+
+      console.log('🔍 Параметры:', { access_token, user_id, email, tg_id });
+
+      if (!access_token || !user_id || !tg_id) {
+        console.error('❌ Недостаточно данных для сохранения');
+        return;
+      }
+
+      try {
+        const res = await fetch('/auth/vk/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token, user_id, email, tg_id })
+        });
+        const result = await res.json();
+        console.log('✅ Результат сохранения:', result);
+      } catch (err) {
+        console.error('🚫 Ошибка при отправке данных на сервер:', err);
+      }
+    })();
+  </script>
 </body>
 </html>
