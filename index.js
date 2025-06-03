@@ -114,6 +114,9 @@ app.get('/auth/vk/callback', async (req, res) => {
       v: '5.199'
     };
 
+    console.log('[VK TOKEN] Параметры запроса:', params);
+    console.log('[VK TOKEN] Как отправляется:', new URLSearchParams(params).toString());
+    
     // ⚡ Отправляем POST-запрос к VK (только как application/x-www-form-urlencoded!)
     const tokenRes = await axios.post(tokenUrl, new URLSearchParams(params), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
