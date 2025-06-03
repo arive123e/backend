@@ -68,8 +68,8 @@ app.get('/auth/vk', (req, res) => {
   // 4. Готовим волшебный портал VK ID
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: process.env.VK_CLIENT_ID,
-    redirect_uri: process.env.VK_REDIRECT_URI,
+    client_id: '53336238', // <--- ТВОЙ client_id ЗАШИТ ЖЁСТКО
+    redirect_uri: process.env.VK_REDIRECT_URI, // обязательно совпадает с VK ID настройками!
     scope: 'groups', // только нужные права!
     state,
     code_challenge,
@@ -107,7 +107,7 @@ app.get('/auth/vk/callback', async (req, res) => {
     const tokenUrl = 'https://api.vk.com/oauth/token';
     const params = {
       grant_type: 'authorization_code',
-      client_id: process.env.VK_CLIENT_ID,
+      client_id: '53336238', // <--- client_id жёстко
       redirect_uri: process.env.VK_REDIRECT_URI,
       code,
       code_verifier,
