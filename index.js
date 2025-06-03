@@ -1,45 +1,109 @@
-require('dotenv').config(); // 🔐 Загружаем переменные из .env
+require('dotenv').config(); // ✨ Загружаем секретики из .env — теперь магия доступна!
 
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
+const express = require('express'); // 🧙 Express — наш серверный волшебник
+const path = require('path'); // 📦 Для работы с путями
+const fs = require('fs'); // 🗂️ Для хранения пользователей
+const crypto = require('crypto'); // 🔐 Для PKCE и безопасности
+
 const app = express();
 const PORT = 3000;
 
-// 🌟 Хранилище пользователей и защита от повторов
-const recentIPs = new Map();
-let callCounter = 0;
+// ====================
+// 🎩 PKCE-мастерская
+// ====================
 
-app.use(express.json()); // 💡 Для обработки JSON POST-запросов
+// Волшебная карта "state → code_verifier" (только пока сервер жив)
+const pkceStates = new Map();
 
-// ✅ Тестовый маршрут
+// 🪄 Создаём секретный code_verifier для PKCE
+function generateCodeVerifier() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+// ✨ Превращаем code_verifier в code_challenge (SHA256 и спец. кодировка)
+function generateCodeChallenge(verifier) {
+  return crypto
+    .createHash('sha256')
+    .update(verifier)
+    .digest('base64url');
+}
+
+// =======================
+// 💾 Память пользователей
+// =======================
+const recentIPs = new Map(); // Защита от повторов
+let callCounter = 0; // Счётчик вызовов для отладки
+
+app.use(express.json()); // 🌟 Чтобы получать JSON-запросы
+
+// ====================
+// 🧪 Тестовый маршрут
+// ====================
 app.get('/test', (req, res) => {
-  res.send('Test OK!');
+  res.send('Test OK! 🚦');
 });
 
-// 🌐 Главная страница
+// ==============================
+// 🏠 Главная — магия приветствия
+// ==============================
 app.get('/', (req, res) => {
-  res.send('Добро пожаловать в магический проект Фокусника Альтаира! ✨');
+  res.send('Добро пожаловать в магический проект Фокусника Альтаира! 🪄✨');
 });
 
-// ✅ Заглушка для GET /auth/vk/callback
+// =============================================
+// 🔑 Старт PKCE-авторизации через VK ID (magic)
+// =============================================
+app.get('/auth/vk', (req, res) => {
+  // 1. Создаём секретные ключи для PKCE
+  const code_verifier = generateCodeVerifier();
+  const code_challenge = generateCodeChallenge(code_verifier);
+
+  // 2. Генерируем state (секретная печать защиты 🛡️)
+  const state = crypto.randomBytes(12).toString('hex');
+
+  // 3. Сохраняем state и code_verifier (только для обмена токена)
+  pkceStates.set(state, code_verifier);
+
+  // 4. Готовим волшебный портал VK ID
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: process.env.VK_CLIENT_ID,
+    redirect_uri: process.env.VK_REDIRECT_URI,
+    scope: 'groups', // только нужные права!
+    state,
+    code_challenge,
+    code_challenge_method: 'S256'
+  });
+
+  // 5. Телепортируем пользователя на VK ID ✈️
+  const vkAuthUrl = `https://id.vk.com/authorize?${params.toString()}`;
+  res.redirect(vkAuthUrl);
+});
+
+// =====================================
+// 🪄 Страница успеха после авторизации
+// =====================================
 app.get('/auth/vk/callback', (req, res) => {
+  // Пока только заглушка — будет обмен кода на токен! ✨
   res.sendFile(path.join(__dirname, 'public', 'success.html'));
 });
 
-// 🔐 Приём токена от фронта после PKCE авторизации
+// ==========================
+// 💌 Приём VK access_token
+// ==========================
 app.post('/auth/vk/save', async (req, res) => {
   callCounter++;
   const now = Date.now();
   const ip = req.ip;
 
-  console.log(`=== [VK TOKEN SAVE] ВЫЗОВ #${callCounter} ===`); // ✅ исправлено
-  console.log(`[TOKEN] Время: ${new Date().toISOString()}`); // ✅ исправлено
-  console.log(`[TOKEN] IP: ${ip}`); // ✅ исправлено
+  console.log(`=== [VK TOKEN SAVE] ВЫЗОВ #${callCounter} ===`);
+  console.log(`[TOKEN] Время: ${new Date().toISOString()}`);
+  console.log(`[TOKEN] IP: ${ip}`);
   console.log(`[TOKEN] Данные:`, req.body);
 
+  // 👮 Защита от частых запросов с одного IP (anti-spam)
   if (recentIPs.has(ip) && now - recentIPs.get(ip) < 3000) {
-    console.warn(`⚠️ Повторный запрос с IP ${ip} — блок`); // ✅ исправлено
+    console.warn(`⚠️ Повторный запрос с IP ${ip} — блокируем`);
     return res.status(429).send('Слишком частые запросы');
   }
 
@@ -69,24 +133,27 @@ app.post('/auth/vk/save', async (req, res) => {
     };
 
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    console.log(`💾 Сохранён пользователь VK ${user_id} (TG ${tg_id})`); // ✅ исправлено
+    console.log(`💾 Сохранён пользователь VK ${user_id} (TG ${tg_id})`);
 
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('❌ Ошибка сохранения VK-токена:', error.message);
-    console.log('📛 Ответ НЕ был сохранён. Отправляем 500.');
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
 
-// 🆘 Страница помощи
+// ===================
+// 📖 Страница помощи
+// ===================
 app.get('/help', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'help.html'));
 });
 
-// 📂 Статика без /auth
+// =======================
+// 📦 Статика (frontend)
+// =======================
 app.use((req, res, next) => {
-  console.log('[STATIC MIDDLEWARE] Запрос:', req.url);
+  console.log('[STATIC] Запрос:', req.url);
   next();
 });
 app.use((req, res, next) => {
@@ -98,7 +165,9 @@ app.use((req, res, next) => {
   express.static(path.join(__dirname, 'public'))(req, res, next);
 });
 
+// ================
 // 🚀 Запуск сервера
+// ================
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🪄 Сервер запущен на http://localhost:${PORT}`); // ✅ исправлено
+  console.log(`🪄 Сервер запущен на http://localhost:${PORT} — магия началась!`);
 });
