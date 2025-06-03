@@ -1,84 +1,104 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Магический портал авторизации VK ID</title>
-  <!-- 📦 VKID SDK -->
-  <script src="https://unpkg.com/@vkid/sdk@2.5.2/dist-sdk/umd/index.js"></script>
-</head>
-<body>
-  <h1>Добро пожаловать!</h1>
-  <div id="VkIdSdkOneTap"></div>
+require('dotenv').config(); // 🔐 Загружаем переменные из .env
 
-  <script>
-    // ✨ Извлекаем tg_id из параметров строки запроса
-    function getQueryParam(name) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(name);
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const app = express();
+const PORT = 3000;
+
+// 🌟 Хранилище пользователей и защита от повторов
+const recentIPs = new Map();
+let callCounter = 0;
+
+app.use(express.json()); // 💡 Для обработки JSON POST-запросов
+
+// ✅ Тестовый маршрут
+app.get('/test', (req, res) => {
+  res.send('Test OK!');
+});
+
+// 🌐 Главная страница
+app.get('/', (req, res) => {
+  res.send('Добро пожаловать в магический проект Фокусника Альтаира! ✨');
+});
+
+// ✅ Заглушка для GET /auth/vk/callback
+app.get('/auth/vk/callback', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'success.html'));
+});
+
+// 🔐 Приём токена от фронта после PKCE авторизации
+app.post('/auth/vk/save', async (req, res) => {
+  callCounter++;
+  const now = Date.now();
+  const ip = req.ip;
+
+  console.log(`=== [VK TOKEN SAVE] ВЫЗОВ #${callCounter} ===`); // ✅ исправлено
+  console.log(`[TOKEN] Время: ${new Date().toISOString()}`); // ✅ исправлено
+  console.log(`[TOKEN] IP: ${ip}`); // ✅ исправлено
+  console.log(`[TOKEN] Данные:`, req.body);
+
+  if (recentIPs.has(ip) && now - recentIPs.get(ip) < 3000) {
+    console.warn(`⚠️ Повторный запрос с IP ${ip} — блок`); // ✅ исправлено
+    return res.status(429).send('Слишком частые запросы');
+  }
+
+  recentIPs.set(ip, now);
+  setTimeout(() => recentIPs.delete(ip), 60000);
+
+  try {
+    const { access_token, user_id, email, tg_id } = req.body;
+
+    if (!access_token || !user_id || !tg_id) {
+      return res.status(400).json({ error: 'Недостаточно данных' });
     }
 
-    const tg_id = getQueryParam('tg_id');
+    const usersPath = path.join(__dirname, 'users.json');
+    let users = {};
 
-    if (!tg_id) {
-      document.body.innerHTML = '<p style="color:red;">❌ Ошибка: Telegram ID не передан!</p>';
-      throw new Error('tg_id обязателен');
+    if (fs.existsSync(usersPath)) {
+      const raw = fs.readFileSync(usersPath, 'utf-8');
+      users = raw ? JSON.parse(raw) : {};
     }
 
-    if ('VKIDSDK' in window) {
-      const VKID = window.VKIDSDK;
+    users[user_id] = {
+      vk_user_id: user_id,
+      access_token,
+      email,
+      tg_id
+    };
 
-      VKID.Config.init({
-        app: 53336238,
-        redirectUrl: window.location.href.split('?')[0], // ⛔ убираем query!
-        scope: 'friends,groups,wall,docs,photos,video,email,offline',
-        state: tg_id,
-        options: {
-          disableSilentAuth: true,
-          authType: 'pkce' // ✅ только PKCE
-        }
-      });
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log(`💾 Сохранён пользователь VK ${user_id} (TG ${tg_id})`); // ✅ исправлено
 
-      const oneTap = new VKID.OneTap();
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('❌ Ошибка сохранения VK-токена:', error.message);
+    console.log('📛 Ответ НЕ был сохранён. Отправляем 500.');
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
 
-      oneTap.onAuth(async (response) => {
-        console.log('✅ Успешная авторизация:', response);
+// 🆘 Страница помощи
+app.get('/help', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'help.html'));
+});
 
-        try {
-          const result = await fetch('/auth/vk/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              access_token: response.accessToken,
-              user_id: response.user.id,
-              email: response.user.email,
-              tg_id
-            })
-          });
+// 📂 Статика без /auth
+app.use((req, res, next) => {
+  console.log('[STATIC MIDDLEWARE] Запрос:', req.url);
+  next();
+});
+app.use((req, res, next) => {
+  if (req.url.startsWith('/auth')) return next();
+  express.static('frontend')(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.url.startsWith('/auth')) return next();
+  express.static(path.join(__dirname, 'public'))(req, res, next);
+});
 
-          if (result.ok) {
-            window.location.href = '/success.html';
-          } else {
-            alert('Ошибка при сохранении токена');
-          }
-        } catch (err) {
-          console.error('❌ Ошибка запроса:', err);
-          alert('Не удалось сохранить токен');
-        }
-      });
-
-      const container = document.getElementById('VkIdSdkOneTap');
-      if (container) {
-        oneTap.render({
-          container,
-          styles: {
-            height: 40,
-          },
-        });
-      }
-    } else {
-      console.error('❌ VKID SDK не загружен');
-    }
-  </script>
-</body>
-</html>
+// 🚀 Запуск сервера
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🪄 Сервер запущен на http://localhost:${PORT}`); // ✅ исправлено
+});
