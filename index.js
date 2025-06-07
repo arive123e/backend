@@ -73,6 +73,11 @@ app.post('/auth/vk/token', async (req, res) => {
   }
 });
 
+// 📄 Отдаём callback.html строго по маршруту /auth/vk/callback (VK ID redirect)
+app.get('/auth/vk/callback', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'callback.html'));
+});
+
 // Раздаём фронтенд/публичные файлы
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
