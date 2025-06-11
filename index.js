@@ -15,11 +15,16 @@ app.get('/test', (req, res) => {
   res.send('Test OK! 🚦');
 });
 
-// Главный маршрут обмена кода на токен VK ID
+// Главный маршрут обмена кода на токен VK ID (используем PKCE)
 app.post('/auth/vk/token', async (req, res) => {
   const { code, code_verifier, device_id, tg_id } = req.body;
 
+  // Подробное логирование
+  console.log('[VK TOKEN] Получен POST /auth/vk/token');
+  console.log({ code, code_verifier, device_id, tg_id });
+
   if (!code || !code_verifier || !device_id) {
+    console.log('❌ Не хватает параметров!');
     return res.status(400).json({ error: 'Не хватает параметров: code, code_verifier, device_id.' });
   }
 
@@ -37,6 +42,8 @@ app.post('/auth/vk/token', async (req, res) => {
   postParams.append('device_id', device_id);
   postParams.append('v', '5.199');
 
+  console.log('[VK TOKEN] Отправляем на VK:', postParams.toString());
+
   try {
     const vkRes = await axios.post(
       'https://id.vk.com/oauth2/token',
@@ -44,6 +51,8 @@ app.post('/auth/vk/token', async (req, res) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const data = vkRes.data;
+
+    console.log('[VK TOKEN] Ответ VK:', data);
 
     // Сохраняем пользователя
     const usersPath = path.join(__dirname, 'users.json');
@@ -65,14 +74,15 @@ app.post('/auth/vk/token', async (req, res) => {
     res.json({ success: true, user_id: data.user_id, expires_in: data.expires_in });
     console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${tg_id || '-'})`);
   } catch (err) {
+    // Подробно выводим ошибку
     console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Не удалось получить токен VK. Проверьте параметры или попробуйте снова.' });
+    res.status(500).json({ error: 'Не удалось получить токен VK. Проверьте параметры или попробуйте снова.', vk: err.response?.data || err.message });
   }
 });
 
 // Коллбэк — только заглушка для VK ID
 app.get('/auth/vk/callback', (req, res) => {
-  res.send('<h2>Завершено! Теперь можно закрыть окно и вернуться в Telegram.</h2>');
+  res.send('<h2><b>Завершено!</b> Теперь можно закрыть окно и вернуться в Telegram.</h2>');
 });
 
 // Раздаём фронтенд/публичные файлы
