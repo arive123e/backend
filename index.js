@@ -73,9 +73,59 @@ app.post('/auth/vk/token', async (req, res) => {
   }
 });
 
-// 📄 Отдаём callback.html строго по маршруту /auth/vk/callback (VK ID redirect)
-app.get('/auth/vk/callback', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'callback.html'));
+// === VK AUTH CALLBACK ===
+app.get('/auth/vk/callback', async (req, res) => {
+  const { code, state, code_verifier } = req.query;
+  console.log('[VK CALLBACK] Получен код:', code, 'state:', state);
+
+  if (!code) {
+    return res.send('<h2>Ошибка: параметр code не найден</h2>');
+  }
+
+  // Данные приложения VK ID
+  const client_id = 'ТВОЙ_CLIENT_ID';
+  const redirect_uri = 'https://api.fokusnikaltair.xyz/auth/vk/callback';
+
+  // --- PKCE: code_verifier если есть, иначе без него ---
+  try {
+    // Собираем параметры для VK API (PKCE поддерживается автоматически)
+    const params = new URLSearchParams({
+      client_id,
+      redirect_uri,
+      code,
+      // code_verifier: code_verifier || '', // раскомментируй если точно используешь
+    });
+
+    // Если используешь PKCE — обязательно добавляй code_verifier:
+    // params.append('code_verifier', code_verifier || '');
+
+    // Отправляем запрос на обмен code на access_token:
+    const vkRes = await axios.post(
+      'https://api.vk.com/oauth/access_token',
+      params, // Для post x-www-form-urlencoded, если будет 400 — попробуй как query string
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    // vkRes.data = { access_token, expires_in, user_id, email, ... }
+    console.log('[VK TOKEN]', vkRes.data);
+
+    // Можно сохранять токен, tg_id = state, и т.д.
+
+    res.send(`
+      <h2>Авторизация завершена!</h2>
+      <p>Можешь вернуться в Telegram.<br>state (tg_id): <b>${state}</b></p>
+      <pre>${JSON.stringify(vkRes.data, null, 2)}</pre>
+    `);
+
+  } catch (err) {
+    console.error('[VK ERROR]', err?.response?.data || err);
+    res.send(`<h2>Ошибка при обмене кода на токен VK</h2>
+    <pre>${JSON.stringify(err?.response?.data || err, null, 2)}</pre>`);
+  }
 });
 
 // Раздаём фронтенд/публичные файлы
