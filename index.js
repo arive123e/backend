@@ -87,46 +87,50 @@ app.get('/auth/vk/callback', async (req, res) => {
   const redirect_uri = 'https://api.fokusnikaltair.xyz/auth/vk/callback';
 
   // --- PKCE: code_verifier если есть, иначе без него ---
-  try {
-    // Собираем параметры для VK API (PKCE поддерживается автоматически)
-    const params = new URLSearchParams({
-      client_id,
-      redirect_uri,
-      code,
-      // code_verifier: code_verifier || '', // раскомментируй если точно используешь
-    });
+ try {
+  // Явно создаём параметры и выводим их в консоль для отладки
+  const postParams = new URLSearchParams();
+  postParams.append('grant_type', 'authorization_code');
+  postParams.append('client_id', client_id);
+  postParams.append('redirect_uri', redirect_uri);
+  postParams.append('code', code);
+  postParams.append('code_verifier', code_verifier);
+  postParams.append('device_id', device_id);
+  postParams.append('v', '5.199');
 
-    // Если используешь PKCE — обязательно добавляй code_verifier:
-    // params.append('code_verifier', code_verifier || '');
+  console.log('[VK TOKEN REQUEST]', postParams.toString());
 
-    // Отправляем запрос на обмен code на access_token:
-    const vkRes = await axios.post(
-      'https://api.vk.com/oauth/access_token',
-      params, // Для post x-www-form-urlencoded, если будет 400 — попробуй как query string
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
+  // Запрос к VK для обмена кода на токены
+  const vkRes = await axios.post(
+    'https://id.vk.com/oauth2/token',
+    postParams.toString(),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+  const data = vkRes.data;
 
-    // vkRes.data = { access_token, expires_in, user_id, email, ... }
-    console.log('[VK TOKEN]', vkRes.data);
-
-    // Можно сохранять токен, tg_id = state, и т.д.
-
-    res.send(`
-      <h2>Авторизация завершена!</h2>
-      <p>Можешь вернуться в Telegram.<br>state (tg_id): <b>${state}</b></p>
-      <pre>${JSON.stringify(vkRes.data, null, 2)}</pre>
-    `);
-
-  } catch (err) {
-    console.error('[VK ERROR]', err?.response?.data || err);
-    res.send(`<h2>Ошибка при обмене кода на токен VK</h2>
-    <pre>${JSON.stringify(err?.response?.data || err, null, 2)}</pre>`);
+  // ...всё остальное (сохраняем пользователя и отправляем ответ)
+  const usersPath = path.join(__dirname, 'users.json');
+  let users = {};
+  if (fs.existsSync(usersPath)) {
+    const raw = fs.readFileSync(usersPath, 'utf-8');
+    users = raw ? JSON.parse(raw) : {};
   }
-});
+  users[data.user_id] = {
+    vk_user_id: data.user_id,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in,
+    tg_id: tg_id || null,
+    saved_at: new Date().toISOString()
+  };
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
+  res.json({ success: true, user_id: data.user_id, expires_in: data.expires_in });
+  console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${tg_id || '-'})`);
+} catch (err) {
+  console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
+  res.status(500).json({ error: 'Не удалось получить токен VK. Проверьте параметры или попробуйте снова.' });
+}
 
 // Раздаём фронтенд/публичные файлы
 app.use(express.static(path.join(__dirname, 'frontend')));
