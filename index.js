@@ -17,13 +17,16 @@ app.get('/test', (req, res) => {
 app.get('/auth/vk/callback', async (req, res) => {
   const { code, state, code_verifier } = req.query;
 
+  // Логируем что приходит с фронта (ОЧЕНЬ важно!)
+  console.log('[VKID CALLBACK] Запрос от фронта:', { code, state, code_verifier });
+
   if (!code) return res.send('<h2>Ошибка: не передан code</h2>');
   if (!code_verifier) return res.send('<h2>Ошибка: не передан code_verifier (генерируется на фронте)</h2>');
 
   const client_id = '53336238';
   const redirect_uri = 'https://api.fokusnikaltair.xyz/auth/vk/callback';
 
-  // Параметры для exchangeCode
+  // Собираем параметры для метода exchangeCode (именно так требует VKID LowCode SDK)
   const params = new URLSearchParams();
   params.append('client_id', client_id);
   params.append('code', code);
@@ -31,16 +34,18 @@ app.get('/auth/vk/callback', async (req, res) => {
   params.append('code_verifier', code_verifier);
 
   try {
-    // ⚡ Новый endpoint!
+    // Новый эндпоинт для обмена кода на токен!
     const vkRes = await axios.post(
       'https://api.vk.com/method/auth.exchangeCode',
       params.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
 
+    // Логируем ответ VK для диагностики
+    console.log('[VKID CALLBACK] Ответ VK:', vkRes.data);
+
     const data = vkRes.data;
 
-    // VK возвращает .response с access_token внутри!
     if (data.response) {
       // Сохраняем пользователя (users.json)
       const usersPath = path.join(__dirname, 'users.json');
@@ -62,9 +67,12 @@ app.get('/auth/vk/callback', async (req, res) => {
       res.send('<h2><b>Успешно!</b> Можно закрыть окно и вернуться в Telegram.</h2>');
       console.log(`💾 VK user_id ${data.response.user_id} успешно сохранён (TG: ${state || '-'})`);
     } else {
+      // Показываем всю ошибку VK на фронте и в логах
       res.send('<h2>Ошибка от VK:<br>' + JSON.stringify(data.error || data) + '</h2>');
+      console.error('[VKID CALLBACK] Ошибка от VK:', data.error || data);
     }
   } catch (err) {
+    // Логируем ВСЁ тело ошибки для дебага
     console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
     res.send('<h2>Ошибка при обмене кода на токен VK<br>' + JSON.stringify(err.response?.data || err.message) + '</h2>');
   }
