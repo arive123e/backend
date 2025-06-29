@@ -1,4 +1,4 @@
-// index.js — VK ID OAuth 2.1 PKCE, совместимый с LowCode VKID SDK (июнь 2025)
+// index.js — VK ID OAuth 2.1, LowCode-ready (июнь 2025)
 
 const express = require('express');
 const fs = require('fs');
@@ -15,15 +15,12 @@ app.get('/test', (req, res) => {
   res.send('Test OK! 🚦');
 });
 
-// ⚡ ГЛАВНЫЙ ЭНДПОИНТ: обмен кода на токен (через LowCode VKID SDK)
+// ⚡ ГЛАВНЫЙ ЭНДПОИНТ: обмен кода на токен (для LowCode VKID SDK)
 app.get('/auth/vk/callback', async (req, res) => {
-  const { code, state, code_verifier } = req.query;
+  const { code, state } = req.query; // Никаких code_verifier!
 
   if (!code) {
     return res.send('<h2>Ошибка: не передан code</h2>');
-  }
-  if (!code_verifier) {
-    return res.send('<h2>Ошибка: не передан code_verifier (генерируется на фронте)</h2>');
   }
 
   // VK APP
@@ -36,7 +33,6 @@ app.get('/auth/vk/callback', async (req, res) => {
   postParams.append('client_id', client_id);
   postParams.append('redirect_uri', redirect_uri);
   postParams.append('code', code);
-  postParams.append('code_verifier', code_verifier);
   postParams.append('v', '5.199');
 
   try {
