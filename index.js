@@ -6,38 +6,43 @@ const axios = require('axios');
 const app = express();
 const PORT = 3000;
 
+// 🔄 NEW: для POST-запросов обязательно нужен json-парсер!
 app.use(express.json());
 
 app.get('/test', (req, res) => {
   res.send('Test OK! 🚦');
 });
 
-// Эндпоинт колбэка после авторизации
-app.get('/auth/vk/callback', async (req, res) => {
-  // 🔄 NEW: добавил device_id
-  const { code, state, code_verifier, device_id } = req.query;
+/*
+  🔄 NEW: убери или закомментируй старый GET-эндпоинт колбэка!
+  app.get('/auth/vk/callback', ... )
+*/
 
-  // Логируем для дебага
-  console.log('[VKID CALLBACK] Запрос:', { code, state, code_verifier, device_id });
+// 🔄 NEW: основной POST-эндпоинт для обмена кода на токен
+app.post('/auth/vk/callback', async (req, res) => {
+  // 🔄 NEW: теперь берём параметры из req.body, а не req.query!
+  const { code, state, code_verifier, device_id } = req.body;
+
+  console.log('[VKID CALLBACK] POST:', { code, state, code_verifier, device_id });
 
   if (!code) return res.send('<h2>Ошибка: не передан code</h2>');
   if (!code_verifier) return res.send('<h2>Ошибка: не передан code_verifier</h2>');
-  // 🔄 NEW: проверяем наличие device_id
   if (!device_id) return res.send('<h2>Ошибка: не передан device_id</h2>');
 
   const client_id = '53336238';
-  const redirect_uri = 'https://api.fokusnikaltair.xyz/auth/vk/callback';
+  // 🔄 NEW: redirect_uri должен совпадать с тем, что в VK и на фронте!
+  const redirect_uri = 'https://api.fokusnikaltair.xyz/vk-callback.html';
 
   const params = new URLSearchParams();
   params.append('client_id', client_id);
-  params.append('grant_type', 'authorization_code'); // 🔄 NEW: обязателен для VK ID без SDK
+  params.append('grant_type', 'authorization_code');
   params.append('code', code);
   params.append('redirect_uri', redirect_uri);
   params.append('code_verifier', code_verifier);
-  params.append('device_id', device_id); // 🔄 NEW: передаём device_id
+  params.append('device_id', device_id);
 
   try {
-    // 🔄 NEW: используем актуальный endpoint из документации (если твоя дока требует /oauth2/auth, оставь так!)
+    // 🔄 NEW: endpoint VK ID (оставь /oauth2/auth, если твоя дока требует именно его)
     const vkRes = await axios.post(
       'https://id.vk.com/oauth2/auth',
       params.toString(),
@@ -77,6 +82,7 @@ app.get('/auth/vk/callback', async (req, res) => {
   }
 });
 
+// Раздача статики (frontend/public) как и раньше — это правильно!
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
 
