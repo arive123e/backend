@@ -14,26 +14,32 @@ app.get('/test', (req, res) => {
 
 // Эндпоинт колбэка после авторизации
 app.get('/auth/vk/callback', async (req, res) => {
-  const { code, state, code_verifier } = req.query;
+  // 🔄 NEW: добавил device_id
+  const { code, state, code_verifier, device_id } = req.query;
 
   // Логируем для дебага
-  console.log('[VKID CALLBACK] Запрос:', { code, state, code_verifier });
+  console.log('[VKID CALLBACK] Запрос:', { code, state, code_verifier, device_id });
 
   if (!code) return res.send('<h2>Ошибка: не передан code</h2>');
   if (!code_verifier) return res.send('<h2>Ошибка: не передан code_verifier</h2>');
+  // 🔄 NEW: проверяем наличие device_id
+  if (!device_id) return res.send('<h2>Ошибка: не передан device_id</h2>');
 
   const client_id = '53336238';
   const redirect_uri = 'https://api.fokusnikaltair.xyz/auth/vk/callback';
 
   const params = new URLSearchParams();
   params.append('client_id', client_id);
+  params.append('grant_type', 'authorization_code'); // 🔄 NEW: обязателен для VK ID без SDK
   params.append('code', code);
   params.append('redirect_uri', redirect_uri);
   params.append('code_verifier', code_verifier);
+  params.append('device_id', device_id); // 🔄 NEW: передаём device_id
 
   try {
+    // 🔄 NEW: используем актуальный endpoint из документации (если твоя дока требует /oauth2/auth, оставь так!)
     const vkRes = await axios.post(
-      'https://api.vk.com/method/auth.exchangeCode',
+      'https://id.vk.com/oauth2/auth',
       params.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
