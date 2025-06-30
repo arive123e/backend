@@ -42,44 +42,53 @@ app.post('/auth/vk/callback', async (req, res) => {
   params.append('device_id', device_id);
 
   try {
-    // 🔄 NEW: endpoint VK ID (оставь /oauth2/auth, если твоя дока требует именно его)
-    const vkRes = await axios.post(
-      'https://id.vk.com/oauth2/auth',
-      params.toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+  // 🔄 NEW: endpoint VK ID (оставь /oauth2/auth, если твоя дока требует именно его)
+  const vkRes = await axios.post(
+    'https://id.vk.com/oauth2/auth',
+    params.toString(),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
 
-    console.log('[VKID CALLBACK] Ответ VK:', vkRes.data);
+  console.log('[VKID CALLBACK] Ответ VK:', vkRes.data);
 
-    const data = vkRes.data;
-
-    if (data.response) {
-      const usersPath = path.join(__dirname, 'users.json');
-      let users = {};
-      if (fs.existsSync(usersPath)) {
-        const raw = fs.readFileSync(usersPath, 'utf-8');
-        users = raw ? JSON.parse(raw) : {};
-      }
-      users[data.response.user_id] = {
-        vk_user_id: data.response.user_id,
-        access_token: data.response.access_token,
-        refresh_token: data.response.refresh_token,
-        expires_in: data.response.expires_in,
-        tg_id: state || null,
-        saved_at: new Date().toISOString()
-      };
-      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-
-      res.send('<h2><b>Успешно!</b> Можно закрыть окно и вернуться в Telegram.</h2>');
-      console.log(`💾 VK user_id ${data.response.user_id} успешно сохранён (TG: ${state || '-'})`);
-    } else {
-      res.send('<h2>Ошибка от VK:<br>' + JSON.stringify(data.error || data) + '</h2>');
-      console.error('[VKID CALLBACK] Ошибка от VK:', data.error || data);
-    }
-  } catch (err) {
-    console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
-    res.send('<h2>Ошибка при обмене кода на токен VK<br>' + JSON.stringify(err.response?.data || err.message) + '</h2>');
+  const data = vkRes.data;
+  const usersPath = path.join(__dirname, 'users.json');
+  let users = {};
+  if (fs.existsSync(usersPath)) {
+    const raw = fs.readFileSync(usersPath, 'utf-8');
+    users = raw ? JSON.parse(raw) : {};
   }
+
+  if (data.response) {
+    users[data.response.user_id] = {
+      vk_user_id: data.response.user_id,
+      access_token: data.response.access_token,
+      refresh_token: data.response.refresh_token,
+      expires_in: data.response.expires_in,
+      tg_id: state || null,
+      saved_at: new Date().toISOString(),
+      status: 'ok'
+    };
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    res.send('<h2><b>Успешно!</b> Можно закрыть окно и вернуться в Telegram.</h2>');
+    console.log(`💾 VK user_id ${data.response.user_id} успешно сохранён (TG: ${state || '-'})`);
+  } else {
+    // 🟥 NEW: логируем и пишем ошибку в users.json по user_id из токена, если он есть, иначе по времени
+    let failKey = (data.user_id || data.id || `fail_${Date.now()}`);
+    users[failKey] = {
+      error: data.error || data,
+      tg_id: state || null,
+      saved_at: new Date().toISOString(),
+      status: 'fail'
+    };
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    res.send('<h2>Ошибка от VK:<br>' + JSON.stringify(data.error || data) + '</h2>');
+    console.error('[VKID CALLBACK] Нет data.response, а есть:', data);
+  }
+} catch (err) {
+  console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
+  res.send('<h2>Ошибка при обмене кода на токен VK<br>' + JSON.stringify(err.response?.data || err.message) + '</h2>');
+}
 });
 
 // Раздача статики (frontend/public) как и раньше — это правильно!
