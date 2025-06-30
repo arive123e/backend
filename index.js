@@ -42,7 +42,6 @@ app.post('/auth/vk/callback', async (req, res) => {
   params.append('device_id', device_id);
 
   try {
-  // 🔄 NEW: endpoint VK ID (оставь /oauth2/auth, если твоя дока требует именно его)
   const vkRes = await axios.post(
     'https://id.vk.com/oauth2/auth',
     params.toString(),
@@ -59,21 +58,22 @@ app.post('/auth/vk/callback', async (req, res) => {
     users = raw ? JSON.parse(raw) : {};
   }
 
-  if (data.response) {
-    users[data.response.user_id] = {
-      vk_user_id: data.response.user_id,
-      access_token: data.response.access_token,
-      refresh_token: data.response.refresh_token,
-      expires_in: data.response.expires_in,
+  // ⚡️ NEW: Проверяем наличие access_token и user_id
+  if (data.access_token && data.user_id) {
+    users[data.user_id] = {
+      vk_user_id: data.user_id,
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in,
       tg_id: state || null,
       saved_at: new Date().toISOString(),
       status: 'ok'
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
     res.send('<h2><b>Успешно!</b> Можно закрыть окно и вернуться в Telegram.</h2>');
-    console.log(`💾 VK user_id ${data.response.user_id} успешно сохранён (TG: ${state || '-'})`);
+    console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${state || '-'})`);
   } else {
-    // 🟥 NEW: логируем и пишем ошибку в users.json по user_id из токена, если он есть, иначе по времени
+    // Если access_token нет — это ошибка!
     let failKey = (data.user_id || data.id || `fail_${Date.now()}`);
     users[failKey] = {
       error: data.error || data,
@@ -83,7 +83,7 @@ app.post('/auth/vk/callback', async (req, res) => {
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
     res.send('<h2>Ошибка от VK:<br>' + JSON.stringify(data.error || data) + '</h2>');
-    console.error('[VKID CALLBACK] Нет data.response, а есть:', data);
+    console.error('[VKID CALLBACK] Нет токена, а есть:', data);
   }
 } catch (err) {
   console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
