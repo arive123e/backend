@@ -75,11 +75,19 @@
 
 @media (max-width: 600px) {
   .portal-ground-img {
-    width: 100vw;         /* На всю ширину экрана */
-    max-width: none;      /* Не ограничиваем максимальную ширину */
-    height: auto;         /* Высота автоматически, чтобы не искажалось */
-    left: 50%;            /* Центрируем */
-    transform: translateX(-50%);    /* уменьши по высоте на мобильных, если нужно */
+    position: absolute;
+    left: 50%;
+    bottom: 0;              /* Прижать к низу */
+    transform: translateX(-50%);
+    width: 110vw;           /* или сколько нужно */
+    max-width: none;
+    height: auto;
+    z-index: 1;
+  }
+
+  body, .page-content {
+    position: relative;     /* Родитель для абсолютного позиционирования */
+    min-height: 100vh;      /* уменьши по высоте на мобильных, если нужно */
   }
 }
 
