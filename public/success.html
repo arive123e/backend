@@ -57,8 +57,34 @@
     .star18 { width:24px; top:23%; left:51%; opacity:.12;}
     .star19 { width:22px; top:92%; left:77%; opacity:.10;}
     .star20 { width:31px; top:59%; left:80%; opacity:.13;}
+    
+    /* --- Заголовок (ПК) --- */
+    .success-title {
+      color: #fff;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-size: 2.3em;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 68px;
+      margin-bottom: 0;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+      text-shadow: 0 2px 18px #0007;
+      z-index: 5;
+    }
+    .success-subtitle {
+      color: #e2eaff;
+      font-family: 'Montserrat', Arial, sans-serif;
+      font-size: 1.35em;
+      font-weight: 400;
+      text-align: center;
+      margin-top: 13px;
+      margin-bottom: 40px;
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 10px #0005;
+      z-index: 5;
 
-    /* ПК-версия: просто абсолют внизу, центрируем */
+    /*портал */
     .portal-ground-img {
       position: absolute;
       left: 0;
@@ -75,6 +101,18 @@
     }
 
     @media (max-width: 600px) {
+       @media (max-width: 600px) {
+      .success-title {
+        font-size: 1.16em;
+        margin-top: 30px;
+        padding: 0 5vw;
+      }
+      .success-subtitle {
+        font-size: 1em;
+        margin-top: 10px;
+        margin-bottom: 30px;
+        padding: 0 5vw;
+      }
       .portal-ground-img {
         position: fixed;      /* ← ЧТОБЫ ПРИЛИПАЛО к низу! */
         left: 50%;
@@ -117,8 +155,10 @@
     <img class="star star19" src="/star 1.png" alt="" />
     <img class="star star20" src="/star 1.png" alt="" />
   </div>
-  <!-- ======= /ФОН ЗВЕЗДЫ ======= -->
-
+   <!-- ======= ЗАГОЛОВОК ======= -->
+  <div class="success-title">Фух, квест пройден!</div>
+  <div class="success-subtitle">Магический салют уже в твою честь</div>
+ <!-- ======= КАРТИНКА ПОРТАЛА ======= -->
   <img src="/portal 1.png"
      alt="Портал на земле с кустами"
      class="portal-ground-img">
