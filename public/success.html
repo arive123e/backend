@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
-       /* фон */
       height: 100%;
       margin: 0;
       padding: 0;
@@ -21,9 +20,9 @@
       background: linear-gradient(180deg, #171a2c 0%, #293063 100%);
       margin: 0;
       padding: 0;
-       /* фон */
+      position: relative;   /* обязательно! */
     }
-     /* Звёздный фон */
+    /* Звёздный фон */
     .stars-bg { 
       position: fixed; 
       z-index: 0; 
@@ -58,43 +57,44 @@
     .star18 { width:24px; top:23%; left:51%; opacity:.12;}
     .star19 { width:22px; top:92%; left:77%; opacity:.10;}
     .star20 { width:31px; top:59%; left:80%; opacity:.13;}
-     /* Звёздный фон */
- .portal-ground-img {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 60vw;        /* Например, уменьшаем ширину на ПК */
-  max-width: 700px;   /* Можно ограничить максимальный размер */
-  margin: 0 auto;     /* Центрируем */
-  z-index: 3;
-  pointer-events: none;
-  user-select: none;
-  height: auto;
-}
 
-@media (max-width: 600px) {
-  .portal-ground-img {
-    position: absolute;
-    left: 50%;
-    bottom: -10;              /* Прижать к низу */
-    transform: translateX(-50%);
-    width: 110vw;           /* или сколько нужно */
-    max-width: none;
-    height: auto;
-    z-index: 1;
-  }
+    /* ПК-версия: просто абсолют внизу, центрируем */
+    .portal-ground-img {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 60vw;
+      max-width: 700px;
+      margin: 0 auto;
+      z-index: 3;
+      pointer-events: none;
+      user-select: none;
+      height: auto;
+      display: block;
+    }
 
-  body, .page-content {
-    position: relative;     /* Родитель для абсолютного позиционирования */
-    min-height: 100vh;     /* уменьши по высоте на мобильных, если нужно */
-  }
-}
-
+    @media (max-width: 600px) {
+      .portal-ground-img {
+        position: fixed;      /* ← ЧТОБЫ ПРИЛИПАЛО к низу! */
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: 110vw;
+        max-width: none;
+        height: auto;
+        z-index: 10;
+        pointer-events: none;
+      }
+      body, .page-content {
+        position: relative;
+        min-height: 100vh;
+      }
+    }
   </style>
 </head>
 <body>
-   <!-- ======= ФОН ЗВЕЗДЫ ======= -->
+  <!-- ======= ФОН ЗВЕЗДЫ ======= -->
   <div class="stars-bg">
     <img class="star star1" src="/star 1.png" alt="" />
     <img class="star star2" src="/star 1.png" alt="" />
@@ -118,9 +118,9 @@
     <img class="star star20" src="/star 1.png" alt="" />
   </div>
   <!-- ======= /ФОН ЗВЕЗДЫ ======= -->
+
   <img src="/portal 1.png"
      alt="Портал на земле с кустами"
      class="portal-ground-img">
 </body>
 </html>
-
