@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body {
+       /* фон */
       height: 100%;
       margin: 0;
       padding: 0;
@@ -17,15 +18,74 @@
     body {
       min-height: 100vh;
       width: 100vw;
-      /* Тёмно-синий к менее тёмному — сверху вниз */
       background: linear-gradient(180deg, #171a2c 0%, #293063 100%);
       margin: 0;
       padding: 0;
+       /* фон */
     }
+     /* Звёздный фон */
+    .stars-bg { 
+      position: fixed; 
+      z-index: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      left: 0; 
+      top: 0; 
+      pointer-events: none; 
+    }
+    .star { 
+      position: absolute; 
+      opacity: 0.15; 
+      filter: blur(0.2px);
+    }
+    .star1 { width:34px; top:11%; left:7%; }
+    .star2 { width:21px; top:18%; left:21%; opacity:.10;}
+    .star3 { width:29px; top:28%; left:81%; opacity:.13;}
+    .star4 { width:17px; top:65%; left:17%; opacity:.10;}
+    .star5 { width:28px; top:53%; left:68%; opacity:.14;}
+    .star6 { width:26px; top:77%; left:85%; opacity:.13;}
+    .star7 { width:20px; top:89%; left:13%; opacity:.09;}
+    .star8 { width:36px; top:15%; left:78%; opacity:.15;}
+    .star9 { width:23px; top:75%; left:44%; opacity:.11;}
+    .star10 { width:30px; top:67%; left:94%; opacity:.11;}
+    .star11 { width:19px; top:31%; left:41%; opacity:.14;}
+    .star12 { width:24px; top:13%; left:59%; opacity:.12;}
+    .star13 { width:28px; top:83%; left:59%; opacity:.10;}
+    .star14 { width:22px; top:39%; left:85%; opacity:.09;}
+    .star15 { width:20px; top:50%; left:28%; opacity:.13;}
+    .star16 { width:18px; top:20%; left:62%; opacity:.12;}
+    .star17 { width:34px; top:84%; left:74%; opacity:.11;}
+    .star18 { width:24px; top:23%; left:51%; opacity:.12;}
+    .star19 { width:22px; top:92%; left:77%; opacity:.10;}
+    .star20 { width:31px; top:59%; left:80%; opacity:.13;}
+     /* Звёздный фон */
   </style>
 </head>
 <body>
-  <!-- Пока только фон. Всё остальное добавляем по шагам -->
+   <!-- ======= ФОН ЗВЕЗДЫ ======= -->
+  <div class="stars-bg">
+    <img class="star star1" src="/star 1.png" alt="" />
+    <img class="star star2" src="/star 1.png" alt="" />
+    <img class="star star3" src="/star 1.png" alt="" />
+    <img class="star star4" src="/star 1.png" alt="" />
+    <img class="star star5" src="/star 1.png" alt="" />
+    <img class="star star6" src="/star 1.png" alt="" />
+    <img class="star star7" src="/star 1.png" alt="" />
+    <img class="star star8" src="/star 1.png" alt="" />
+    <img class="star star9" src="/star 1.png" alt="" />
+    <img class="star star10" src="/star 1.png" alt="" />
+    <img class="star star11" src="/star 1.png" alt="" />
+    <img class="star star12" src="/star 1.png" alt="" />
+    <img class="star star13" src="/star 1.png" alt="" />
+    <img class="star star14" src="/star 1.png" alt="" />
+    <img class="star star15" src="/star 1.png" alt="" />
+    <img class="star star16" src="/star 1.png" alt="" />
+    <img class="star star17" src="/star 1.png" alt="" />
+    <img class="star star18" src="/star 1.png" alt="" />
+    <img class="star star19" src="/star 1.png" alt="" />
+    <img class="star star20" src="/star 1.png" alt="" />
+  </div>
+  <!-- ======= /ФОН ЗВЕЗДЫ ======= -->
 </body>
 </html>
 
