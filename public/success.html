@@ -59,6 +59,26 @@
     .star19 { width:22px; top:92%; left:77%; opacity:.10;}
     .star20 { width:31px; top:59%; left:80%; opacity:.13;}
      /* Звёздный фон */
+    .portal-ground-img {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  max-width: 100vw;
+  z-index: 3;
+  pointer-events: none;
+  user-select: none;
+  /* Можно подогнать высоту по вкусу: */
+  height: auto;
+}
+
+@media (max-width: 600px) {
+  .portal-ground-img {
+    height: 140px;      /* уменьши по высоте на мобильных, если нужно */
+  }
+}
+
   </style>
 </head>
 <body>
@@ -86,6 +106,9 @@
     <img class="star star20" src="/star 1.png" alt="" />
   </div>
   <!-- ======= /ФОН ЗВЕЗДЫ ======= -->
+  <img src="/portal 1.png"
+     alt="Портал на земле с кустами"
+     class="portal-ground-img">
 </body>
 </html>
 
