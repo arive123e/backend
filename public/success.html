@@ -84,6 +84,28 @@
       text-shadow: 0 1px 10px #0005;
       z-index: 5;
     }
+     /* --- КНОПКА (ПК) --- */
+    .back-btn {
+  display: block;
+  margin: 34px auto 0 auto;
+  background: linear-gradient(90deg, #e6bb54 0%, #ffef9c 100%);
+  color: #282310;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 1.13em;
+  font-weight: bold;
+  padding: 15px 38px 13px 38px;
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 2px 18px #f9eab633, 0 0px 0 #fff;
+  cursor: pointer;
+  transition: background .16s, box-shadow .14s;
+  letter-spacing: 0.01em;
+  z-index: 15;
+}
+.back-btn:hover {
+  background: linear-gradient(90deg, #d2a635 0%, #ffe18a 100%);
+  box-shadow: 0 4px 32px #ffe18a77;
+  }
     /*портал */
     .portal-ground-img {
       position: absolute;
@@ -111,6 +133,11 @@
         margin-top: 10px;
         margin-bottom: 30px;
         padding: 0 5vw;
+      }
+      .back-btn {
+    margin: 28px auto 0 auto;
+    padding: 13px 12vw 11px 12vw;
+    font-size: 1.07em;
       }
       .portal-ground-img {
         position: fixed;      /* ← ЧТОБЫ ПРИЛИПАЛО к низу! */
@@ -157,6 +184,8 @@
    <!-- ======= ЗАГОЛОВОК ======= -->
   <div class="success-title">Фух, квест пройден!</div>
   <div class="success-subtitle">Магический салют в твою честь</div>
+ <!-- ======= КНОПКА ЗАКРЫТИЯ ======= -->
+  <button class="back-btn" onclick="window.close()">Вернуться в свой мир</button>
  <!-- ======= КАРТИНКА ПОРТАЛА ======= -->
   <img src="/portal 1.png"
      alt="Портал на земле с кустами"
