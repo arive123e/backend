@@ -59,17 +59,17 @@
     .star19 { width:22px; top:92%; left:77%; opacity:.10;}
     .star20 { width:31px; top:59%; left:80%; opacity:.13;}
      /* Звёздный фон */
-    .portal-ground-img {
+ .portal-ground-img {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100vw;
-  max-width: 100vw;
+  width: 60vw;        /* Например, уменьшаем ширину на ПК */
+  max-width: 700px;   /* Можно ограничить максимальный размер */
+  margin: 0 auto;     /* Центрируем */
   z-index: 3;
   pointer-events: none;
   user-select: none;
-  /* Можно подогнать высоту по вкусу: */
   height: auto;
 }
 
