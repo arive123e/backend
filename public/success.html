@@ -127,24 +127,30 @@
     .firework-img-left {
       left: calc(50% - 280px);
       top: 250px;
-       width: 150px;  
+      width: 150px;  
     }
     .firework-img-right {
       left: calc(50% + 180px);
       top: 270px;
-       width: 180px;  
+      width: 180px;  
     }
-    .mirrored {
-  transform: scaleX(-1);
-}
     .pulse {
       animation: firework-pulse 1.2s ease-in-out infinite;
+    }
+    .pulse-mirror {
+      animation: firework-pulse-mirror 1.2s ease-in-out infinite;
     }
     @keyframes firework-pulse {
       0%   { transform: scale(0.88); opacity: 0.78;}
       30%  { transform: scale(1.05); opacity: 1;}
       70%  { transform: scale(1); opacity: 0.9;}
       100% { transform: scale(0.93); opacity: 0.7;}
+    }
+    @keyframes firework-pulse-mirror {
+      0%   { transform: scaleX(-1) scale(0.88); opacity: 0.78;}
+      30%  { transform: scaleX(-1) scale(1.05); opacity: 1;}
+      70%  { transform: scaleX(-1) scale(1); opacity: 0.9;}
+      100% { transform: scaleX(-1) scale(0.93); opacity: 0.7;}
     }
 
     /* --- Только мобильная версия --- */
@@ -280,13 +286,13 @@
       <!-- Левый салют-картинка -->
       <img src="/salut 1.png" alt="Салют 1" class="firework-img firework-img-left pulse">
       <button class="back-btn" onclick="window.close()">Вернуться в свой мир</button>
-      <!-- Правый салют-картинка -->
-      <img src="/salut 1.png" alt="Салют" class="firework-img firework-img-right mirrored pulse">
+      <!-- Правый салют-картинка (зеркальный и пульсирующий) -->
+      <img src="/salut 1.png" alt="Салют" class="firework-img firework-img-right pulse-mirror">
     </div>
     <div class="portal-block">
       <img src="/portal 1.png" alt="Портал на земле с кустами" class="portal-ground-img">
       <div class="portal-on-img-text">
-        Портал всё ещё светится —<br>
+        Портал всё ещё светится -<br>
         пора отправляться домой, герой!
       </div>
     </div>
