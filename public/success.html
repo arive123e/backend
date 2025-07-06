@@ -134,6 +134,30 @@
       height: auto;
       display: block;
     }
+    .portal-block {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.portal-on-img-text {
+  position: absolute;
+  left: 50%;
+  top: 58%;      /* регулируй по вкусу */
+  transform: translate(-50%, 0);
+  color: #fff;
+  opacity: 0.9;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 1.1em;
+  text-align: center;
+  text-shadow: 0 2px 18px #00fff966, 0 1px 12px #000a;
+  pointer-events: none;
+  z-index: 20;
+  width: 90%;
+  max-width: 380px;
+  line-height: 1.25;
+}
+
 
     @media (max-width: 600px) {
       .success-title {
@@ -173,6 +197,16 @@
         position: relative;
         min-height: 100vh;
       }
+       .portal-on-img-text {
+    font-size: 0.94em;
+    top: 64%;
+    max-width: 85vw;
+    padding: 0 2vw;
+  }
+  .portal-block {
+    width: 100vw;
+    max-width: 100vw;
+  }
     }
   </style>
 </head>
@@ -214,5 +248,9 @@
   <img src="/portal 1.png"
      alt="Портал на земле с кустами"
      class="portal-ground-img">
+   <div class="portal-on-img-text">
+    Портал всё ещё светится —<br>
+    самое время отправиться домой, пока не захлопнулся!
+  </div>
 </body>
 </html>
