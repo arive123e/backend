@@ -70,7 +70,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       status: 'ok'
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    res.redirect('/success.html');
+    res.sendFile(path.join(__dirname, 'public/success.html'));
     console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${state || '-'})`);
   } else {
     // Если access_token нет — это ошибка!
@@ -82,7 +82,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       status: 'fail'
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    res.redirect('/error.html');
+    res.sendFile(path.join(__dirname, 'public/error.html'));
     console.error('[VKID CALLBACK] Нет токена, а есть:', data);
   }
 } catch (err) {
