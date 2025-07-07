@@ -1,85 +1,220 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>🪄 Ой! Заклинание не сработало</title>
+  <meta charset="UTF-8" />
+  <title>Ошибка!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      background: linear-gradient(120deg, #232526 0%, #4a5365 100%);
-      color: #fff0f3;
-      font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
-      text-align: center;
-      padding: 0;
+    html, body {
+      height: 100%;
       margin: 0;
+      padding: 0;
+      width: 100vw;
       min-height: 100vh;
+      overflow-x: hidden;
+      box-sizing: border-box;
+      font-family: 'Montserrat', Arial, sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      background: linear-gradient(180deg, #171a2c 0%, #293063 100%);
+      margin: 0;
+      padding: 0;
+      position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+    }
+    .stars-bg { 
+      position: fixed; 
+      z-index: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      left: 0; 
+      top: 0; 
+      pointer-events: none; 
+    }
+    .star { position: absolute; opacity: 0.15; filter: blur(0.2px);}
+    .star1 { width:34px; top:11%; left:7%; }
+    .star2 { width:21px; top:18%; left:21%; opacity:.10;}
+    .star3 { width:29px; top:28%; left:81%; opacity:.13;}
+    .star4 { width:17px; top:65%; left:17%; opacity:.10;}
+    .star5 { width:28px; top:53%; left:68%; opacity:.14;}
+    .star6 { width:26px; top:77%; left:85%; opacity:.13;}
+    .star7 { width:20px; top:89%; left:13%; opacity:.09;}
+    .star8 { width:36px; top:15%; left:78%; opacity:.15;}
+    .star9 { width:23px; top:75%; left:44%; opacity:.11;}
+    .star10 { width:30px; top:67%; left:94%; opacity:.11;}
+    .star11 { width:19px; top:31%; left:41%; opacity:.14;}
+    .star12 { width:24px; top:13%; left:59%; opacity:.12;}
+    .star13 { width:28px; top:83%; left:59%; opacity:.10;}
+    .star14 { width:22px; top:39%; left:85%; opacity:.09;}
+    .star15 { width:20px; top:50%; left:28%; opacity:.13;}
+    .star16 { width:18px; top:20%; left:62%; opacity:.12;}
+    .star17 { width:34px; top:84%; left:74%; opacity:.11;}
+    .star18 { width:24px; top:23%; left:51%; opacity:.12;}
+    .star19 { width:22px; top:92%; left:77%; opacity:.10;}
+    .star20 { width:31px; top:59%; left:80%; opacity:.13;}
+
+    .page-content {
+      min-height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      animation: fadeIn 1.1s;
+      position: relative;
+      z-index: 1;
     }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .fail {
-      font-size: 2.1em;
-      color: #ff7675;
-      text-shadow: 0 0 8px #d35400cc, 0 0 22px #6c5ce7cc;
-      margin-bottom: 0.2em;
+    .top-content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 60px;
+      position: relative;
     }
-    .subtitle {
-      font-size: 1.15em;
-      margin-bottom: 1.7em;
-      color: #ffd8e6;
-    }
-    .sparkles {
-      font-size: 3em;
-      margin: 0.3em 0;
-      animation: shake 1.2s infinite alternate;
-    }
-    @keyframes shake {
-      from { transform: rotate(-7deg) scale(1.08);}
-      to { transform: rotate(7deg) scale(1.16);}
-    }
-    .help {
-      background: #403070cc;
-      color: #ffd8e6;
-      border-radius: 1em;
-      padding: 1.2em 1.4em;
-      font-size: 1.05em;
-      margin-top: 1.2em;
-      max-width: 340px;
-      margin-left: auto;
-      margin-right: auto;
-      box-shadow: 0 0 12px #fff1, 0 2px 9px #2d3436aa;
-    }
-    .btn {
-      margin-top: 2em;
-      background: #b7263b;
+    .success-title {
       color: #fff;
-      font-size: 1.05em;
-      border: none;
-      border-radius: 1em;
-      padding: 0.7em 2em;
-      cursor: pointer;
-      box-shadow: 0 0 8px #ffb0b0, 0 2px 12px #2d3436aa;
-      transition: background 0.2s;
+      font-size: 2.6em;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+      text-shadow: 0 2px 18px #0007;
     }
-    .btn:hover { background: #6f1e2a; }
+    .success-subtitle {
+      color: #e2eaff;
+      font-size: 1.75em;
+      font-weight: 400;
+      text-align: center;
+      margin-top: 13px;
+      margin-bottom: 40px;
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 10px #0005;
+    }
+    .back-btn {
+      display: block;
+      margin: 54px auto 0 auto;
+      background: #b88923;
+      color: #292104;
+      font-size: 1.13em;
+      font-weight: bold;
+      padding: 15px 38px 13px 38px;
+      border: none;
+      border-radius: 18px;
+      box-shadow: 0 2px 16px #c9a94744;
+      cursor: pointer;
+      transition: background .16s, box-shadow .14s;
+      letter-spacing: 0.01em;
+      z-index: 15;
+    }
+    .back-btn:hover {
+      background: #8d6a1a;
+      box-shadow: 0 6px 28px #ffe18a55;
+    }
+    /* ----------- ПК стили портала ----------- */
+    .portal-block {
+      position: relative;
+      width: 60vw;
+      max-width: 700px;
+      margin: 0 auto 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .portal-ground-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      z-index: 3;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ----------- Только мобильная версия ----------- */
+    @media (max-width: 600px) {
+      .success-title {
+        font-size: 1.78em;
+        margin-top: 20px;
+        padding: 0 5vw;
+      }
+      .success-subtitle {
+        font-size: 1.5em;
+        margin-top: 10px;
+        margin-bottom: 28px;
+        padding: 0 6vw;
+      }
+      .back-btn {
+        margin: 28px auto 0 auto;
+        padding: 13px 8vw 13px 8vw;
+        font-size: 1.11em;
+      }
+      .page-content {
+        min-height: 100vh;
+        height: 100vh;
+      }
+      .portal-block {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-47%);
+        width: 110vw;
+        max-width: none;
+        margin: 0;
+        z-index: 10;
+        align-items: center;
+        pointer-events: none;
+      }
+      .portal-ground-img {
+        width: 100%;
+        max-width: none;
+        height: auto;
+        display: block;
+        pointer-events: none;
+        user-select: none;
+      }
+    }
+    /* ----------- Конец медиа ----------- */
   </style>
 </head>
 <body>
-  <div class="sparkles">🪄</div>
-  <div class="fail">🕯 Упс, магия дала сбой!</div>
-  <div class="subtitle">Что-то пошло не так, и портал не открылся.<br>Но не переживай — даже у великих магов бывают осечки!</div>
-  <button class="btn" onclick="window.location.href='https://www.fokusnikaltair.xyz/'">Попробовать ещё раз</button>
-  <div class="help">
-    <b>🦉 Помощь от Фокусника:</b><br>
-    <ul style="text-align:left;margin:0 0 0 1em;">
-      <li>Проверь, открыт ли доступ к интернету</li>
-      <li>Включены ли нужные куки в браузере</li>
-      <li>Авторизован ли ты во ВКонтакте в этом браузере</li>
-      <li>Если не помогло — попробуй обновить страницу или зайти позже</li>
-      <li>Для упрямых багов: напиши нам — мы вызовем цифрового совёнка!</li>
-    </ul>
+  <!-- ======= ФОН ЗВЕЗДЫ ======= -->
+  <div class="stars-bg">
+    <img class="star star1" src="/star 1.png" alt="" />
+    <img class="star star2" src="/star 1.png" alt="" />
+    <img class="star star3" src="/star 1.png" alt="" />
+    <img class="star star4" src="/star 1.png" alt="" />
+    <img class="star star5" src="/star 1.png" alt="" />
+    <img class="star star6" src="/star 1.png" alt="" />
+    <img class="star star7" src="/star 1.png" alt="" />
+    <img class="star star8" src="/star 1.png" alt="" />
+    <img class="star star9" src="/star 1.png" alt="" />
+    <img class="star star10" src="/star 1.png" alt="" />
+    <img class="star star11" src="/star 1.png" alt="" />
+    <img class="star star12" src="/star 1.png" alt="" />
+    <img class="star star13" src="/star 1.png" alt="" />
+    <img class="star star14" src="/star 1.png" alt="" />
+    <img class="star star15" src="/star 1.png" alt="" />
+    <img class="star star16" src="/star 1.png" alt="" />
+    <img class="star star17" src="/star 1.png" alt="" />
+    <img class="star star18" src="/star 1.png" alt="" />
+    <img class="star star19" src="/star 1.png" alt="" />
+    <img class="star star20" src="/star 1.png" alt="" />
+  </div>
+  <div class="page-content">
+    <div class="top-content">
+      <div class="success-title">Ой-ой, магия капризничает!</div>
+      <div class="success-subtitle">
+        Что-то пошло не так, и портал не открылся<br>
+        Но не переживай — даже у великих магов бывают осечки!
+      </div>
+      <button class="back-btn" onclick="window.close()">Вернуться в свой мир</button>
+    </div>
+    <div class="portal-block">
+      <img src="/portal 2.png" alt="Портал на земле с кустами" class="portal-ground-img">
+    </div>
   </div>
 </body>
 </html>
