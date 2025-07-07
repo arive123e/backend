@@ -91,6 +91,36 @@ app.post('/auth/vk/callback', async (req, res) => {
 }
 });
 
+// 🔍 Проверка — зарегистрирован ли пользователь по tg_id
+app.get('/users/check', (req, res) => {
+  const tg_id = req.query.tg_id;
+  if (!tg_id) {
+    return res.status(400).json({ success: false, error: 'Нет tg_id' });
+  }
+
+  const usersPath = path.join(__dirname, 'users.json');
+  if (!fs.existsSync(usersPath)) {
+    return res.json({ success: false });
+  }
+
+  const raw = fs.readFileSync(usersPath, 'utf-8');
+  let users = {};
+  try {
+    users = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return res.json({ success: false });
+  }
+
+  // Ищем пользователя по tg_id
+  const found = Object.values(users).find(user => String(user.tg_id) === String(tg_id) && user.status === 'ok');
+
+  if (found) {
+    return res.json({ success: true });
+  } else {
+    return res.json({ success: false });
+  }
+});
+
 // Раздача статики (frontend/public) как и раньше — это правильно!
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
