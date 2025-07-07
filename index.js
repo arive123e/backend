@@ -70,7 +70,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       status: 'ok'
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    res.send('<h2><b>Успешно!</b> Можно закрыть окно и вернуться в Telegram.</h2>');
+    res.redirect('/success.html');
     console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${state || '-'})`);
   } else {
     // Если access_token нет — это ошибка!
@@ -82,7 +82,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       status: 'fail'
     };
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    res.send('<h2>Ошибка от VK:<br>' + JSON.stringify(data.error || data) + '</h2>');
+    res.redirect('/error.html');
     console.error('[VKID CALLBACK] Нет токена, а есть:', data);
   }
 } catch (err) {
