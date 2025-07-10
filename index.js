@@ -53,7 +53,7 @@ app.post('/auth/vk/callback', async (req, res) => {
 
   try {
     const vkRes = await axios.post(
-      'https://id.vk.com/oauth2/token',
+      'https://id.vk.com/oauth2/auth',
       params.toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -149,7 +149,7 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('refresh_token', user.refresh_token);
 
     try {
-      const resp = await axios.post('https://id.vk.com/oauth2/token', params, {
+      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
 
@@ -276,8 +276,8 @@ async function refreshAllTokens() {
   if (updated) fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
 }
 
-// Запускать раз в 50 минут (или как хочешь)
-setInterval(refreshAllTokens, 50 * 60 * 1000);
+// Запускать раз в 30 минут (или как хочешь)
+setInterval(refreshAllTokens, 30 * 60 * 1000);
 
 // Раздача статики (frontend/public) как и раньше — это правильно!
 app.use(express.static(path.join(__dirname, 'frontend')));
