@@ -60,6 +60,12 @@ app.post('/auth/vk/callback', async (req, res) => {
 
   // ⚡️ NEW: Проверяем наличие access_token и user_id
   if (data.access_token && data.user_id) {
+    // Удаляем все старые записи с этим же tg_id (если были)
+for (const key of Object.keys(users)) {
+  if (users[key].tg_id && String(users[key].tg_id) === String(state || null)) {
+    delete users[key];
+  }
+}
     users[data.user_id] = {
       vk_user_id: data.user_id,
       access_token: data.access_token,
