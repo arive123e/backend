@@ -43,7 +43,7 @@ app.post('/auth/vk/callback', async (req, res) => {
 
   try {
   const vkRes = await axios.post(
-    'https://id.vk.com/oauth2/auth',
+    'https://id.vk.com/oauth2/token',
     params.toString(),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
   );
@@ -139,7 +139,7 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('refresh_token', user.refresh_token);
 
     try {
-      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
+      const resp = await axios.post('https://id.vk.com/oauth2/token', params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
 
