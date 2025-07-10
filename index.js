@@ -127,7 +127,53 @@ app.get('/users/check', (req, res) => {
   }
 });
 
-// 🔍 Получить список групп пользователя по tg_id
+async function ensureFreshAccessToken(user, users, usersPath) {
+  const now = Date.now();
+  const savedAt = new Date(user.saved_at).getTime();
+  const expiresIn = Number(user.expires_in || 0) * 1000;
+
+  if (now - savedAt > expiresIn - 60000) {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'refresh_token');
+    params.append('client_id', '53336238');
+    params.append('refresh_token', user.refresh_token);
+
+    try {
+      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      if (resp.data.access_token && resp.data.refresh_token) {
+        user.access_token = resp.data.access_token;
+        user.refresh_token = resp.data.refresh_token;
+        user.expires_in = resp.data.expires_in;
+        user.saved_at = new Date().toISOString();
+        users[user.vk_user_id] = user;
+        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+        console.log(`[VKID] ✅ Токен для пользователя ${user.vk_user_id} обновлён!`);
+      } else {
+        // Если не получилось обновить токен — сбрасываем ключи
+        delete user.access_token;
+        delete user.refresh_token;
+        user.status = 'fail';
+        users[user.vk_user_id] = user;
+        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+        throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
+      }
+    } catch (e) {
+      // Тоже сбрасываем
+      delete user.access_token;
+      delete user.refresh_token;
+      user.status = 'fail';
+      users[user.vk_user_id] = user;
+      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
+    }
+  }
+  return user;
+}
+
+
 app.get('/users/groups', async (req, res) => {
   const tg_id = req.query.tg_id;
   if (!tg_id) {
@@ -147,7 +193,6 @@ app.get('/users/groups', async (req, res) => {
     return res.json({ success: false, error: 'Ошибка users.json' });
   }
 
-  // Находим пользователя по tg_id
   const user = Object.values(users).find(
     u => String(u.tg_id) === String(tg_id) && u.status === 'ok'
   );
@@ -156,8 +201,18 @@ app.get('/users/groups', async (req, res) => {
     return res.json({ success: false, error: 'Пользователь не найден или нет токена' });
   }
 
+  // --- NEW: Обновляем токен если надо ---
   try {
-    // Запрашиваем список групп через VK API
+    await ensureFreshAccessToken(user, users, usersPath);
+  } catch (e) {
+    return res.json({
+      success: false,
+      error: 'Не удалось обновить токен. Пожалуйста, авторизуйтесь заново через портал.',
+      reauth: true
+    });
+  }
+
+  try {
     const vkResp = await axios.get('https://api.vk.com/method/groups.get', {
       params: {
         access_token: user.access_token,
@@ -168,7 +223,6 @@ app.get('/users/groups', async (req, res) => {
     if (vkResp.data.error) {
       return res.json({ success: false, error: vkResp.data.error.error_msg });
     }
-    // Возвращаем список групп
     return res.json({ success: true, groups: vkResp.data.response.items });
   } catch (err) {
     return res.json({ success: false, error: err.message });
