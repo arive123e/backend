@@ -121,6 +121,55 @@ app.get('/users/check', (req, res) => {
   }
 });
 
+// 🔍 Получить список групп пользователя по tg_id
+app.get('/users/groups', async (req, res) => {
+  const tg_id = req.query.tg_id;
+  if (!tg_id) {
+    return res.status(400).json({ success: false, error: 'Нет tg_id' });
+  }
+
+  const usersPath = path.join(__dirname, 'users.json');
+  if (!fs.existsSync(usersPath)) {
+    return res.json({ success: false, error: 'Нет users.json' });
+  }
+
+  const raw = fs.readFileSync(usersPath, 'utf-8');
+  let users = {};
+  try {
+    users = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return res.json({ success: false, error: 'Ошибка users.json' });
+  }
+
+  // Находим пользователя по tg_id
+  const user = Object.values(users).find(
+    u => String(u.tg_id) === String(tg_id) && u.status === 'ok'
+  );
+
+  if (!user || !user.access_token) {
+    return res.json({ success: false, error: 'Пользователь не найден или нет токена' });
+  }
+
+  try {
+    // Запрашиваем список групп через VK API
+    const vkResp = await axios.get('https://api.vk.com/method/groups.get', {
+      params: {
+        access_token: user.access_token,
+        extended: 1,
+        v: '5.131'
+      }
+    });
+    if (vkResp.data.error) {
+      return res.json({ success: false, error: vkResp.data.error.error_msg });
+    }
+    // Возвращаем список групп
+    return res.json({ success: true, groups: vkResp.data.response.items });
+  } catch (err) {
+    return res.json({ success: false, error: err.message });
+  }
+});
+
+
 // Раздача статики (frontend/public) как и раньше — это правильно!
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
