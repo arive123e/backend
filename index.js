@@ -147,34 +147,32 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('client_id', '53336238');
     params.append('refresh_token', user.refresh_token);
 
-    try {
-      console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
-      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+ try {
+  console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
+  const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
 
-      console.log(`[ensureFreshAccessToken] Ответ VK:`, resp.data);
+  console.log(`[ensureFreshAccessToken] Ответ VK:`, resp.data);
 
-      if (resp.data.access_token && resp.data.refresh_token) {
-        user.access_token = resp.data.access_token;
-        user.refresh_token = resp.data.refresh_token;
-        user.expires_in = resp.data.expires_in;
-        user.saved_at = new Date().toISOString();
-        users[user.vk_user_id] = user;
-        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        
-        console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-        console.log(`[ensureFreshAccessToken] Файл users.json сохранён:`, users[user.vk_user_id]);
-
-        
-      } else {
-        console.error(`[ensureFreshAccessToken] ❗️ VK не вернул новый access_token/refresh_token. Ответ:`, resp.data);
-        delete user.access_token;
-        delete user.refresh_token;
-        user.status = 'fail';
-        users[user.vk_user_id] = user;
-        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
+  if (resp.data.access_token && resp.data.refresh_token) {
+    user.access_token = resp.data.access_token;
+    user.refresh_token = resp.data.refresh_token;
+    user.expires_in = resp.data.expires_in;
+    user.saved_at = new Date().toISOString();
+    users[user.vk_user_id] = user;
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+    return user;
+  } else {
+    // Токен не пришёл!
+    console.error(`[ensureFreshAccessToken] ❗️ VK НЕ вернул новый токен! Ответ:`, resp.data);
+    delete user.access_token;
+    delete user.refresh_token;
+    user.status = 'fail';
+    users[user.vk_user_id] = user;
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
       }
     } catch (e) {
       console.error(`[ensureFreshAccessToken] ❗️ Ошибка при запросе к VK:`, e.response?.data || e.message);
