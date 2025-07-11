@@ -86,8 +86,8 @@ app.post('/auth/vk/callback', async (req, res) => {
         device_id: device_id
       };
       console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
+      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json записан!');
 
       res.sendFile(path.join(__dirname, 'public/success.html'));
       console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${state || '-'})`);
@@ -101,8 +101,8 @@ console.log('[ПРОВЕРКА] users.json записан!');
         status: 'fail'
       };
       console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
+      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json записан!');
 
       res.sendFile(path.join(__dirname, 'public/error.html'));
       console.error('[VKID CALLBACK] Нет токена, а есть:', data);
@@ -143,11 +143,13 @@ app.get('/users/check', (req, res) => {
   }
 });
 
+// --- Функция для автообновления токена --- //
 async function ensureFreshAccessToken(user, users, usersPath) {
   const now = Date.now();
   const savedAt = new Date(user.saved_at).getTime();
   const expiresIn = Number(user.expires_in || 0) * 1000;
 
+  // Проверяем, не пора ли обновить токен (до истечения < 1 минуты)
   if (now - savedAt > expiresIn - 60000) {
     const params = new URLSearchParams();
     params.append('grant_type', 'refresh_token');
@@ -155,49 +157,43 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('refresh_token', user.refresh_token);
     params.append('device_id', user.device_id);
 
- try {
-  console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
-  const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  });
+    try {
+      console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
+      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
 
-  console.log(`[ensureFreshAccessToken] Ответ VK:`, resp.data);
+      console.log('[ensureFreshAccessToken] VK ответ (raw):', JSON.stringify(resp.data, null, 2));
 
-  if (resp.data.access_token && resp.data.refresh_token) {
-    user.access_token = resp.data.access_token;
-    user.refresh_token = resp.data.refresh_token;
-    user.expires_in = resp.data.expires_in;
-    user.saved_at = new Date().toISOString();
-    users[user.vk_user_id] = user;
-    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
-
-    console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-    return user;
-  } else {
-    // Токен не пришёл!
-    console.error(`[ensureFreshAccessToken] ❗️ VK НЕ вернул новый токен! Ответ:`, resp.data);
-    delete user.access_token;
-    delete user.refresh_token;
-    user.status = 'fail';
-    users[user.vk_user_id] = user;
-    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
-
-    throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
+      // Только если VK реально вернул новый токен — обновляем!
+      if (resp.data.access_token && resp.data.refresh_token) {
+        user.access_token = resp.data.access_token;
+        user.refresh_token = resp.data.refresh_token;
+        user.expires_in = resp.data.expires_in;
+        user.saved_at = new Date().toISOString();
+        users[user.vk_user_id] = user;
+        console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+        console.log('[ПРОВЕРКА] users.json записан!');
+        console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+        return user;
+      } else {
+        // Не трогаем старый токен, просто меняем статус
+        console.error(`[ensureFreshAccessToken] ❗️ VK НЕ вернул новый токен! Ответ:`, resp.data);
+        user.status = 'fail';
+        users[user.vk_user_id] = user;
+        console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+        console.log('[ПРОВЕРКА] users.json записан!');
+        throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
       }
     } catch (e) {
       console.error(`[ensureFreshAccessToken] ❗️ Ошибка при запросе к VK:`, e.response?.data || e.message);
-      delete user.access_token;
-      delete user.refresh_token;
       user.status = 'fail';
       users[user.vk_user_id] = user;
       console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
-
+      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json записан!');
       throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
     }
   }
@@ -275,29 +271,28 @@ async function refreshAllTokens() {
     return;
   }
 
-let updated = false;
-for (const uid in users) {
-  const user = users[uid];
-  if (user.status === 'ok' && user.refresh_token && user.tg_id) {
-    console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
-    try {
-      await ensureFreshAccessToken(user, users, usersPath);
-      console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-    } catch (err) {
-      console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
-      const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
-      await notifyUser(user.tg_id, vkAuthUrl);
-      console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
+  let updated = false;
+  for (const uid in users) {
+    const user = users[uid];
+    if (user.status === 'ok' && user.refresh_token && user.tg_id) {
+      console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
+      try {
+        await ensureFreshAccessToken(user, users, usersPath);
+        console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+        updated = true;
+      } catch (err) {
+        console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
+        const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
+        await notifyUser(user.tg_id, vkAuthUrl);
+        console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
+      }
     }
-    updated = true;
   }
-}
-if (updated) {
-  console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-console.log('[ПРОВЕРКА] users.json записан!');
-
-  console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+  if (updated) {
+    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log('[ПРОВЕРКА] users.json записан!');
+    console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
   }
 }
 
@@ -310,4 +305,3 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.listen(PORT, () => {
   console.log(`VK ID Auth backend запущен на http://localhost:${PORT}`);
 });
-
