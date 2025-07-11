@@ -162,7 +162,11 @@ async function ensureFreshAccessToken(user, users, usersPath) {
         user.saved_at = new Date().toISOString();
         users[user.vk_user_id] = user;
         fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+        
         console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+        console.log(`[ensureFreshAccessToken] Файл users.json сохранён:`, users[user.vk_user_id]);
+
+        
       } else {
         console.error(`[ensureFreshAccessToken] ❗️ VK не вернул новый access_token/refresh_token. Ответ:`, resp.data);
         delete user.access_token;
@@ -275,6 +279,12 @@ async function refreshAllTokens() {
   }
   if (updated) fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
 }
+
+if (updated) {
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+  console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+}
+
 
 // Запускать раз в 2 минуты (или как хочешь)
 setInterval(refreshAllTokens, 2 * 60 * 1000);
