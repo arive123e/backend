@@ -245,6 +245,8 @@ async function ensureFreshAccessToken(user, users, usersPath) {
   }
 }
 
+
+
 app.get('/users/groups', async (req, res) => {
   const tg_id = req.query.tg_id;
   if (!tg_id) {
@@ -285,6 +287,14 @@ app.get('/users/groups', async (req, res) => {
   }
 
   try {
+    // ======= ЛОГ ЗАПРОСА VK =======
+    console.log('VK groups.get params:', {
+      access_token: user.access_token ? user.access_token.slice(0, 10) + '... (скрыто)' : undefined,
+      extended: 1,
+      v: '5.131',
+      count: 1000
+    });
+
     const vkResp = await axios.get('https://api.vk.com/method/groups.get', {
       params: {
         access_token: user.access_token,
@@ -293,15 +303,20 @@ app.get('/users/groups', async (req, res) => {
         count: 1000
       }
     });
+
+    // ======= ЛОГ ОТВЕТА VK =======
+    console.log('VK ответ:', JSON.stringify(vkResp.data, null, 2));
+
     if (vkResp.data.error) {
       return res.json({ success: false, error: vkResp.data.error.error_msg });
     }
     return res.json({ success: true, groups: vkResp.data.response.items });
   } catch (err) {
-    logError('Ошибка при запросе групп VK: ' + err.message);
+    logError('Ошибка при запросе групп VK: ' + (err.response?.data ? JSON.stringify(err.response.data) : err.message));
     return res.json({ success: false, error: err.message });
   }
 });
+
 
 // --- Фоновое обновление токенов раз в 5 минут --- //
 async function refreshAllTokens() {
