@@ -82,7 +82,7 @@ app.post('/auth/vk/callback', async (req, res) => {
         expires_in: data.expires_in,
         tg_id: state || null,
         saved_at: new Date().toISOString(),
-        status: 'ok'
+        status: 'ok',
         device_id: device_id
       };
       fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
