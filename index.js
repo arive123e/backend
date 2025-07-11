@@ -27,10 +27,9 @@ async function notifyUser(tg_id, vkAuthUrl) {
   }
 }
 
-// 🔄 NEW: для POST-запросов обязательно нужен json-парсер!
 app.use(express.json());
 
-// 🔄 NEW: основной POST-эндпоинт для обмена кода на токен
+// --- основной POST-эндпоинт для обмена кода на токен
 app.post('/auth/vk/callback', async (req, res) => {
   const { code, state, code_verifier, device_id } = req.body;
 
@@ -68,7 +67,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       users = raw ? JSON.parse(raw) : {};
     }
 
-    // ⚡️ NEW: Проверяем наличие access_token и user_id
+    // Проверяем наличие access_token и user_id
     if (data.access_token && data.user_id) {
       // Удаляем все старые записи с этим же tg_id (если были)
       for (const key of Object.keys(users)) {
@@ -107,7 +106,7 @@ app.post('/auth/vk/callback', async (req, res) => {
   }
 });
 
-// 🔍 Проверка — зарегистрирован ли пользователь по tg_id
+// Проверка — зарегистрирован ли пользователь по tg_id
 app.get('/users/check', (req, res) => {
   const tg_id = req.query.tg_id;
   if (!tg_id) {
@@ -149,9 +148,12 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('refresh_token', user.refresh_token);
 
     try {
+      console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
       const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
+
+      console.log(`[ensureFreshAccessToken] Ответ VK:`, resp.data);
 
       if (resp.data.access_token && resp.data.refresh_token) {
         user.access_token = resp.data.access_token;
@@ -160,33 +162,23 @@ async function ensureFreshAccessToken(user, users, usersPath) {
         user.saved_at = new Date().toISOString();
         users[user.vk_user_id] = user;
         fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        console.log(`[VKID] ✅ Токен для пользователя ${user.vk_user_id} обновлён!`);
+        console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
       } else {
-        // Если не получилось обновить токен — сбрасываем ключи
+        console.error(`[ensureFreshAccessToken] ❗️ VK не вернул новый access_token/refresh_token. Ответ:`, resp.data);
         delete user.access_token;
         delete user.refresh_token;
         user.status = 'fail';
         users[user.vk_user_id] = user;
         fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        // Оповестим пользователя!
-        if (user.tg_id) {
-          const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
-          await notifyUser(user.tg_id, vkAuthUrl);
-        }
         throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
       }
     } catch (e) {
-      // Тоже сбрасываем
+      console.error(`[ensureFreshAccessToken] ❗️ Ошибка при запросе к VK:`, e.response?.data || e.message);
       delete user.access_token;
       delete user.refresh_token;
       user.status = 'fail';
       users[user.vk_user_id] = user;
       fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-      // Оповестим пользователя!
-      if (user.tg_id) {
-        const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
-        await notifyUser(user.tg_id, vkAuthUrl);
-      }
       throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
     }
   }
@@ -248,27 +240,35 @@ app.get('/users/groups', async (req, res) => {
   }
 });
 
-// --- Фоновое обновление токенов раз в 50 минут ---
+// --- Фоновое обновление токенов раз в 2 минуты ---
 async function refreshAllTokens() {
   const usersPath = path.join(__dirname, 'users.json');
-  if (!fs.existsSync(usersPath)) return;
+  if (!fs.existsSync(usersPath)) {
+    console.log('[refreshAllTokens] Нет файла users.json');
+    return;
+  }
   let users = {};
   try {
     const raw = fs.readFileSync(usersPath, 'utf-8');
     users = raw ? JSON.parse(raw) : {};
-  } catch (e) { return; }
+  } catch (e) {
+    console.error('[refreshAllTokens] Ошибка чтения users.json:', e.message);
+    return;
+  }
 
   let updated = false;
   for (const uid in users) {
     const user = users[uid];
     if (user.status === 'ok' && user.refresh_token && user.tg_id) {
+      console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
       try {
         await ensureFreshAccessToken(user, users, usersPath);
+        console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
       } catch (err) {
-        // Если токен не обновился — уведомляем пользователя в ТГ
+        console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
         const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
         await notifyUser(user.tg_id, vkAuthUrl);
-        console.log(`⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
+        console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
       }
       updated = true;
     }
@@ -276,13 +276,13 @@ async function refreshAllTokens() {
   if (updated) fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
 }
 
-// Запускать раз в 30 минут (или как хочешь)
-setInterval(refreshAllTokens, 30 * 60 * 1000);
+// Запускать раз в 2 минуты (или как хочешь)
+setInterval(refreshAllTokens, 2 * 60 * 1000);
 
-// Раздача статики (frontend/public) как и раньше — это правильно!
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
   console.log(`VK ID Auth backend запущен на http://localhost:${PORT}`);
 });
+
