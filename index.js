@@ -8,6 +8,15 @@ require('dotenv').config(); // теперь .env для бекенда!
 const app = express();
 const PORT = 3000;
 
+// --- [1] Лок для защиты от параллельных обновлений --- //
+const refreshingUsers = {};
+
+// --- [2] Функция логирования ошибок --- //
+function logError(message) {
+  const time = new Date().toISOString();
+  fs.appendFileSync(path.join(__dirname, 'errors.log'), `[${time}] - ${message}\n`);
+}
+
 // --- Функция для отправки уведомления пользователю в Telegram
 async function notifyUser(tg_id, vkAuthUrl) {
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -23,6 +32,7 @@ async function notifyUser(tg_id, vkAuthUrl) {
       }
     });
   } catch (e) {
+    logError('Ошибка при отправке сообщения в Telegram: ' + (e.response?.data || e.message));
     console.error('Ошибка при отправке сообщения в Telegram:', e.response?.data || e.message);
   }
 }
@@ -85,6 +95,12 @@ app.post('/auth/vk/callback', async (req, res) => {
         status: 'ok',
         device_id: device_id
       };
+      // --- [3] Бэкап перед записью
+      try {
+        fs.copyFileSync(usersPath, usersPath + '.bak');
+      } catch (e) {
+        logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+      }
       console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
       fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
       console.log('[ПРОВЕРКА] users.json записан!');
@@ -100,6 +116,11 @@ app.post('/auth/vk/callback', async (req, res) => {
         saved_at: new Date().toISOString(),
         status: 'fail'
       };
+      try {
+        fs.copyFileSync(usersPath, usersPath + '.bak');
+      } catch (e) {
+        logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+      }
       console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
       fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
       console.log('[ПРОВЕРКА] users.json записан!');
@@ -108,6 +129,7 @@ app.post('/auth/vk/callback', async (req, res) => {
       console.error('[VKID CALLBACK] Нет токена, а есть:', data);
     }
   } catch (err) {
+    logError('❌ Ошибка обмена кода на токен: ' + (err.response?.data || err.message));
     console.error('❌ Ошибка обмена кода на токен:', err.response?.data || err.message);
     res.send('<h2>Ошибка при обмене кода на токен VK<br>' + JSON.stringify(err.response?.data || err.message) + '</h2>');
   }
@@ -130,6 +152,7 @@ app.get('/users/check', (req, res) => {
   try {
     users = raw ? JSON.parse(raw) : {};
   } catch (e) {
+    logError('Ошибка чтения users.json: ' + e.message);
     return res.json({ success: false });
   }
 
@@ -145,59 +168,81 @@ app.get('/users/check', (req, res) => {
 
 // --- Функция для автообновления токена --- //
 async function ensureFreshAccessToken(user, users, usersPath) {
+  if (refreshingUsers[user.vk_user_id]) {
+    console.log(`[ensureFreshAccessToken] Обновление уже идёт для user_id=${user.vk_user_id} - пропускаем`);
+    return user;
+  }
+  refreshingUsers[user.vk_user_id] = true;
+
   const now = Date.now();
   const savedAt = new Date(user.saved_at).getTime();
   const expiresIn = Number(user.expires_in || 0) * 1000;
 
-  // Проверяем, не пора ли обновить токен (до истечения < 1 минуты)
-  if (now - savedAt > expiresIn - 60000) {
-    const params = new URLSearchParams();
-    params.append('grant_type', 'refresh_token');
-    params.append('client_id', '53336238');
-    params.append('refresh_token', user.refresh_token);
-    params.append('device_id', user.device_id);
+  try {
+    // Проверяем, не пора ли обновить токен (до истечения < 1 минуты)
+    if (now - savedAt > expiresIn - 60000) {
+      const params = new URLSearchParams();
+      params.append('grant_type', 'refresh_token');
+      params.append('client_id', '53336238');
+      params.append('refresh_token', user.refresh_token);
+      params.append('device_id', user.device_id);
 
-    try {
-      console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
-      const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      try {
+        console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
+        const resp = await axios.post('https://id.vk.com/oauth2/auth', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
 
-      console.log('[ensureFreshAccessToken] VK ответ (raw):', JSON.stringify(resp.data, null, 2));
+        console.log('[ensureFreshAccessToken] VK ответ (raw):', JSON.stringify(resp.data, null, 2));
 
-      // Только если VK реально вернул новый токен — обновляем!
-      if (resp.data.access_token && resp.data.refresh_token) {
-        user.access_token = resp.data.access_token;
-        user.refresh_token = resp.data.refresh_token;
-        user.expires_in = resp.data.expires_in;
-        user.saved_at = new Date().toISOString();
-        users[user.vk_user_id] = user;
-        console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-        fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        console.log('[ПРОВЕРКА] users.json записан!');
-        console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-        return user;
-      } else {
-        // Не трогаем старый токен, просто меняем статус
-        console.error(`[ensureFreshAccessToken] ❗️ VK НЕ вернул новый токен! Ответ:`, resp.data);
+        // Только если VK реально вернул новый токен - обновляем!
+        if (resp.data.access_token && resp.data.refresh_token) {
+          user.access_token = resp.data.access_token;
+          user.refresh_token = resp.data.refresh_token;
+          user.expires_in = resp.data.expires_in;
+          user.saved_at = new Date().toISOString();
+          user.status = 'ok';
+          users[user.vk_user_id] = user;
+          try {
+            fs.copyFileSync(usersPath, usersPath + '.bak');
+          } catch (e) {
+            logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+          }
+          console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+          fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+          console.log('[ПРОВЕРКА] users.json записан!');
+          console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+        } else {
+          // Не трогаем старый токен, просто меняем статус
+          logError(`[ensureFreshAccessToken] VK не вернул новый токен! Ответ: ${JSON.stringify(resp.data)}`);
+          console.error(`[ensureFreshAccessToken] ❗️ VK НЕ вернул новый токен! Ответ:`, resp.data);
+          user.status = 'fail';
+          users[user.vk_user_id] = user;
+          try {
+            fs.copyFileSync(usersPath, usersPath + '.bak');
+          } catch (e) {
+            logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+          }
+          fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+          throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
+        }
+      } catch (e) {
+        logError(`[ensureFreshAccessToken] Ошибка при запросе к VK: ${e.response?.data || e.message}`);
         user.status = 'fail';
         users[user.vk_user_id] = user;
-        console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+        try {
+          fs.copyFileSync(usersPath, usersPath + '.bak');
+        } catch (e) {
+          logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+        }
         fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-        console.log('[ПРОВЕРКА] users.json записан!');
-        throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
+        throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
       }
-    } catch (e) {
-      console.error(`[ensureFreshAccessToken] ❗️ Ошибка при запросе к VK:`, e.response?.data || e.message);
-      user.status = 'fail';
-      users[user.vk_user_id] = user;
-      console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-      console.log('[ПРОВЕРКА] users.json записан!');
-      throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
     }
+    return user;
+  } finally {
+    refreshingUsers[user.vk_user_id] = false;
   }
-  return user;
 }
 
 app.get('/users/groups', async (req, res) => {
@@ -216,6 +261,7 @@ app.get('/users/groups', async (req, res) => {
   try {
     users = raw ? JSON.parse(raw) : {};
   } catch (e) {
+    logError('Ошибка чтения users.json: ' + e.message);
     return res.json({ success: false, error: 'Ошибка users.json' });
   }
 
@@ -251,11 +297,12 @@ app.get('/users/groups', async (req, res) => {
     }
     return res.json({ success: true, groups: vkResp.data.response.items });
   } catch (err) {
+    logError('Ошибка при запросе групп VK: ' + err.message);
     return res.json({ success: false, error: err.message });
   }
 });
 
-// --- Фоновое обновление токенов раз в 2 минуты ---
+// --- Фоновое обновление токенов раз в 5 минут --- //
 async function refreshAllTokens() {
   const usersPath = path.join(__dirname, 'users.json');
   if (!fs.existsSync(usersPath)) {
@@ -263,32 +310,48 @@ async function refreshAllTokens() {
     return;
   }
   let users = {};
+  let updated = false;
   try {
     const raw = fs.readFileSync(usersPath, 'utf-8');
     users = raw ? JSON.parse(raw) : {};
   } catch (e) {
+    logError('[refreshAllTokens] Ошибка чтения users.json: ' + e.message);
     console.error('[refreshAllTokens] Ошибка чтения users.json:', e.message);
     return;
   }
 
-  let updated = false;
   for (const uid in users) {
     const user = users[uid];
     if (user.status === 'ok' && user.refresh_token && user.tg_id) {
-      console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
+      const oldAccessToken = user.access_token;
+      const oldRefreshToken = user.refresh_token;
+      const oldStatus = user.status;
       try {
         await ensureFreshAccessToken(user, users, usersPath);
-        console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-        updated = true;
+        if (
+          user.access_token !== oldAccessToken ||
+          user.refresh_token !== oldRefreshToken ||
+          user.status !== oldStatus
+        ) {
+          updated = true;
+          console.log(`[refreshAllTokens] ✅ Токен или статус обновлён для user_id=${user.vk_user_id}`);
+        }
       } catch (err) {
+        logError(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}: ${err.message}`);
         console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
         const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
         await notifyUser(user.tg_id, vkAuthUrl);
         console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
+        updated = true;
       }
     }
   }
   if (updated) {
+    try {
+      fs.copyFileSync(usersPath, usersPath + '.bak');
+    } catch (e) {
+      logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+    }
     console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
     fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
     console.log('[ПРОВЕРКА] users.json записан!');
@@ -296,8 +359,40 @@ async function refreshAllTokens() {
   }
 }
 
-// Запускать раз в 2 минуты (или как хочешь)
-setInterval(refreshAllTokens, 2 * 60 * 1000);
+// Запускать раз в 5 минут
+setInterval(refreshAllTokens, 5 * 60 * 1000);
+
+// --- [5] Жёсткое удаление пользователя по user_id --- //
+app.post('/users/delete', (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) {
+    return res.status(400).json({ success: false, error: 'Не передан user_id' });
+  }
+  const usersPath = path.join(__dirname, 'users.json');
+  if (!fs.existsSync(usersPath)) {
+    return res.status(400).json({ success: false, error: 'Нет файла users.json' });
+  }
+  let users = {};
+  try {
+    const raw = fs.readFileSync(usersPath, 'utf-8');
+    users = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    logError('[deleteUser] Ошибка чтения файла users.json: ' + e.message);
+    return res.status(500).json({ success: false, error: 'Ошибка чтения файла users.json' });
+  }
+  if (users[user_id]) {
+    delete users[user_id];
+    try {
+      fs.copyFileSync(usersPath, usersPath + '.bak');
+    } catch (e) {
+      logError('[backup] Не удалось сделать бэкап при удалении пользователя: ' + e.message);
+    }
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    return res.json({ success: true });
+  } else {
+    return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+  }
+});
 
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(express.static(path.join(__dirname, 'public')));
