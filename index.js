@@ -83,6 +83,7 @@ app.post('/auth/vk/callback', async (req, res) => {
         tg_id: state || null,
         saved_at: new Date().toISOString(),
         status: 'ok'
+        device_id: device_id
       };
       fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
       res.sendFile(path.join(__dirname, 'public/success.html'));
@@ -146,6 +147,7 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     params.append('grant_type', 'refresh_token');
     params.append('client_id', '53336238');
     params.append('refresh_token', user.refresh_token);
+    params.append('device_id', user.device_id);
 
  try {
   console.log(`[ensureFreshAccessToken] Запрос обновления для user_id=${user.vk_user_id}`);
