@@ -280,8 +280,8 @@ for (const uid in users) {
 if (updated) {
   fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
   console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+  }
 }
-
 
 // Запускать раз в 2 минуты (или как хочешь)
 setInterval(refreshAllTokens, 2 * 60 * 1000);
