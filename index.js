@@ -274,15 +274,14 @@ async function refreshAllTokens() {
         await notifyUser(user.tg_id, vkAuthUrl);
         console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
       }
-      updated = true;
+       updated = true;
+      }
     }
   }
-  if (updated) fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-}
-
-if (updated) {
-  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-  console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+  if (updated) {
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+  }
 }
 
 
