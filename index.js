@@ -300,7 +300,8 @@ app.get('/users/groups', async (req, res) => {
         access_token: user.access_token,
         extended: 1,
         v: '5.131',
-        count: 1000
+        count: 1000,
+        fields: 'members_count'
       }
     });
 
