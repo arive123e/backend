@@ -260,28 +260,26 @@ async function refreshAllTokens() {
     return;
   }
 
-  let updated = false;
-  for (const uid in users) {
-    const user = users[uid];
-    if (user.status === 'ok' && user.refresh_token && user.tg_id) {
-      console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
-      try {
-        await ensureFreshAccessToken(user, users, usersPath);
-        console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
-      } catch (err) {
-        console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
-        const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
-        await notifyUser(user.tg_id, vkAuthUrl);
-        console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
-      }
-       updated = true;
-      }
+let updated = false;
+for (const uid in users) {
+  const user = users[uid];
+  if (user.status === 'ok' && user.refresh_token && user.tg_id) {
+    console.log(`[refreshAllTokens] Попытка обновить токен для user_id=${user.vk_user_id}, tg_id=${user.tg_id}`);
+    try {
+      await ensureFreshAccessToken(user, users, usersPath);
+      console.log(`[refreshAllTokens] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
+    } catch (err) {
+      console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
+      const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
+      await notifyUser(user.tg_id, vkAuthUrl);
+      console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
     }
+    updated = true;
   }
-  if (updated) {
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
-  }
+}
+if (updated) {
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+  console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
 }
 
 
