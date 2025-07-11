@@ -85,7 +85,10 @@ app.post('/auth/vk/callback', async (req, res) => {
         status: 'ok',
         device_id: device_id
       };
-      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
       res.sendFile(path.join(__dirname, 'public/success.html'));
       console.log(`💾 VK user_id ${data.user_id} успешно сохранён (TG: ${state || '-'})`);
     } else {
@@ -97,7 +100,10 @@ app.post('/auth/vk/callback', async (req, res) => {
         saved_at: new Date().toISOString(),
         status: 'fail'
       };
-      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
       res.sendFile(path.join(__dirname, 'public/error.html'));
       console.error('[VKID CALLBACK] Нет токена, а есть:', data);
     }
@@ -163,7 +169,10 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     user.expires_in = resp.data.expires_in;
     user.saved_at = new Date().toISOString();
     users[user.vk_user_id] = user;
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
     console.log(`[ensureFreshAccessToken] ✅ Токен успешно обновлён для user_id=${user.vk_user_id}`);
     return user;
   } else {
@@ -173,7 +182,10 @@ async function ensureFreshAccessToken(user, users, usersPath) {
     delete user.refresh_token;
     user.status = 'fail';
     users[user.vk_user_id] = user;
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
     throw new Error('Не удалось обновить токен VK, требуется повторная авторизация');
       }
     } catch (e) {
@@ -182,7 +194,10 @@ async function ensureFreshAccessToken(user, users, usersPath) {
       delete user.refresh_token;
       user.status = 'fail';
       users[user.vk_user_id] = user;
-      fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+      console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
       throw new Error('Ошибка при обновлении токена: ' + (e.response?.data?.error_description || e.message));
     }
   }
@@ -278,7 +293,10 @@ for (const uid in users) {
   }
 }
 if (updated) {
-  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+  console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+console.log('[ПРОВЕРКА] users.json записан!');
+
   console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
   }
 }
