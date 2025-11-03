@@ -32,8 +32,9 @@ async function notifyUser(tg_id, vkAuthUrl) {
       }
     });
   } catch (e) {
-    logError('Ошибка при отправке сообщения в Telegram: ' + (e.response?.data || e.message));
-    console.error('Ошибка при отправке сообщения в Telegram:', e.response?.data || e.message);
+    logError('Ошибка при отправке сообщения в Telegram: ' + (e.response?.data?.description || e.message));
+    console.error('Ошибка при отправке сообщения в Telegram:', e.response?.data?.description || e.message);
+    throw e; // <== обязательно!
   }
 }
 
@@ -338,41 +339,44 @@ async function refreshAllTokens() {
   }
 
   for (const uid in users) {
-    const user = users[uid];
-    if (user.status === 'ok' && user.refresh_token && user.tg_id) {
-      const oldAccessToken = user.access_token;
-      const oldRefreshToken = user.refresh_token;
-      const oldStatus = user.status;
+  const user = users[uid];
+  if (user.status === 'ok' && user.refresh_token && user.tg_id) {
+    const oldAccessToken = user.access_token;
+    const oldRefreshToken = user.refresh_token;
+    const oldStatus = user.status;
+
+    try {
+      await ensureFreshAccessToken(user, users, usersPath);
+
+      if (
+        user.access_token !== oldAccessToken ||
+        user.refresh_token !== oldRefreshToken ||
+        user.status !== oldStatus
+      ) {
+        updated = true;
+        console.log(`[refreshAllTokens] ✅ Токен или статус обновлён для user_id=${user.vk_user_id}`);
+      }
+    } catch (err) {
+      logError(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}: ${err.message}`);
+      console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
+
+      const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
+
       try {
-        await ensureFreshAccessToken(user, users, usersPath);
-        if (
-          user.access_token !== oldAccessToken ||
-          user.refresh_token !== oldRefreshToken ||
-          user.status !== oldStatus
-        ) {
-          updated = true;
-          console.log(`[refreshAllTokens] ✅ Токен или статус обновлён для user_id=${user.vk_user_id}`);
-        }
-      } catch (err) {
-        logError(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}: ${err.message}`);
-        console.error(`[refreshAllTokens] ❌ Ошибка обновления токена для user_id=${user.vk_user_id}:`, err.message);
-        const vkAuthUrl = `https://fokusnikaltair.xyz/vkid-auth.html?tg_id=${user.tg_id}`;
         await notifyUser(user.tg_id, vkAuthUrl);
         console.log(`[refreshAllTokens] ⚡️ Оповестили ${user.tg_id} о необходимости новой авторизации`);
-        updated = true;
+      } catch (e) {
+        const isBlocked = e.response?.data?.description?.includes('bot was blocked by the user');
+        if (isBlocked) {
+          logError(`[refreshAllTokens] ❌ Пользователь ${user.tg_id} заблокировал бота — удаляем из users.json`);
+          delete users[user.vk_user_id];
+        } else {
+          logError(`[refreshAllTokens] ⚠️ Ошибка при уведомлении ${user.tg_id}: ${e.response?.data?.description || e.message}`);
+        }
       }
+
+      updated = true;
     }
-  }
-  if (updated) {
-    try {
-      fs.copyFileSync(usersPath, usersPath + '.bak');
-    } catch (e) {
-      logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
-    }
-    console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
-    console.log('[ПРОВЕРКА] users.json записан!');
-    console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
   }
 }
 
