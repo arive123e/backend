@@ -380,6 +380,19 @@ async function refreshAllTokens() {
   }
 }
 
+if (updated) {
+  try {
+    fs.copyFileSync(usersPath, usersPath + '.bak');
+  } catch (e) {
+    logError('[backup] Не удалось сделать бэкап users.json: ' + e.message);
+  }
+  console.log('[ПРОВЕРКА] users.json перед записью:', JSON.stringify(users, null, 2));
+  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+  console.log('[ПРОВЕРКА] users.json записан!');
+  console.log(`[refreshAllTokens] Файл users.json перезаписан!`);
+}
+}
+  
 // Запускать раз в 5 минут
 setInterval(refreshAllTokens, 5 * 60 * 1000);
 
